@@ -257,7 +257,8 @@ const getRankingEvent = () => {
 
   const currentTime = Date.now();
   for (let i = 0; i < events.length; i++) {
-    if (events[i].startAt <= currentTime && events[i].aggregateAt >= currentTime) {
+    //buffer of 15 minutes for after event
+    if (events[i].startAt <= currentTime && events[i].aggregateAt + 60 * 15 * 1000 >= currentTime) {
       return {
         id: events[i].id,
         banner: 'https://sekai-res.dnaroma.eu/file/sekai-en-assets/event/' +
@@ -275,7 +276,7 @@ const getRankingEvent = () => {
  */
 const trackRankingData = async (discordClient) => {
   // Identify current event from schedule
-  const event = discordClient.getCurrentEvent();
+  const event = getRankingEvent();
 
   // change later back to correct === -1
   if (event.id === -1) {

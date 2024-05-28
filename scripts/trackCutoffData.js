@@ -94,7 +94,7 @@ const getRankingEvent = () => {
 
     for (let i = events.length - 1; i >= 0; i--) {
         //Time of Distribution + buffer time of 15 minutes to get final cutoff
-        if (events[i].startAt < currentTime && events[i].aggregateAt > currentTime) {
+        if (events[i].startAt < currentTime && events[i].aggregateAt + 15 * 60 * 1000 > currentTime) {
             return {
                 id: events[i].id,
                 banner: 'https://sekai-res.dnaroma.eu/file/sekai-en-assets/event/' +
