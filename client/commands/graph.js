@@ -50,7 +50,7 @@ function ensureASCII(str) {
  * @param {DiscordClient} client we are using to interact with discord
  * @error Status code of the http request
  */
-const postQuickChart = async (interaction, tier, rankData, discordClient) => {
+const postQuickChart = async (interaction, tier, rankData, event, discordClient) => {
   if (!rankData) {
     await interaction.editReply({
       embeds: [
@@ -64,15 +64,13 @@ const postQuickChart = async (interaction, tier, rankData, discordClient) => {
     return;
   }
 
-  let graphData = [];
-  const event = discordClient.getCurrentEvent();
   tier = ensureASCII(tier);
-
-  rankData.forEach(point => {
-    graphData.push({
+  rankData = rankData.filter(point => point.timestamp < event.aggregateAt + 60 * 15 * 1000);
+  let graphData = rankData.map(point => {
+    return {
       x: point.timestamp - event.startAt,
       y: point.score
-    });
+    };
   });
 
   let postData = JSON.stringify({
@@ -183,7 +181,7 @@ async function sendHistoricalTierRequest(eventId, eventName, eventData, tier, in
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
       rankData.unshift({ timestamp: eventData.startAt, score: 0 });
       rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
-      postQuickChart(interaction, `${eventName} T${tier} Cutoffs`, rankData, discordClient);
+      postQuickChart(interaction, `${eventName} T${tier} Cutoffs`, rankData, eventData, discordClient);
     } else {
       noDataErrorMessage(interaction, discordClient);
     }
@@ -210,7 +208,7 @@ async function sendTierRequest(eventId, eventName, eventData, tier, interaction,
       rankData.unshift({ timestamp: eventData.startAt, score: 0 });
       rankData.push({ timestamp: Date.now(), score: response['rankings'][0]['score'] });
       rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
-      postQuickChart(interaction, `${eventName} T${tier} ${response['rankings'][0]['name']} Cutoffs`, rankData, discordClient);
+      postQuickChart(interaction, `${eventName} T${tier} ${response['rankings'][0]['name']} Cutoffs`, rankData, eventData, discordClient);
     } else {
       noDataErrorMessage(interaction, discordClient);
     }
@@ -229,7 +227,7 @@ async function sendGraphByTierRequest(eventId, eventName, eventData, tier, inter
     let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
     rankData.unshift({ timestamp: eventData.startAt, score: 0 });
     rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
-    postQuickChart(interaction, `${eventName} T${tier} Cutoffs`, rankData, discordClient);
+    postQuickChart(interaction, `${eventName} T${tier} Cutoffs`, rankData, eventData, discordClient);
   } else {
     noDataErrorMessage(interaction, discordClient);
   }
@@ -308,7 +306,7 @@ module.exports = {
           let name = user.displayName;
           let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
           rankData.unshift({ timestamp: event.startAt, score: 0 });
-          postQuickChart(interaction, `${eventName} ${name} Event Points`, rankData, discordClient);
+          postQuickChart(interaction, `${eventName} ${name} Event Points`, rankData, event, discordClient);
         }
         else {
           interaction.editReply({ content: 'Discord User found but no data logged (have you recently linked or event ended?)' });
