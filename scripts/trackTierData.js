@@ -198,12 +198,12 @@ async function getCutoffs(discordClient) {
                                 track.cutoff = null;
                             }
                         } if (track.min || track.max) {
-                            if (change >= track.min || change <= track.max) {
+                            if (change >= track.min && change <= track.max) {
                                 let channel = discordClient.client.channels.cache.get(track.channel);
                                 try {
                                     let minStr = track.min ? `Min: ${track.min.toLocaleString()}` : '';
                                     let maxStr = track.max == Number.MAX_SAFE_INTEGER ? 'Max: Infinte' : `Max: ${track.max.toLocaleString()}`;
-                                    channel.send(`T${track.currentTier} ${track.name} had a game with ${(currentScore - lastScore).toLocaleString()} EP. Current EP: ${score.toLocaleString()} EP (${minStr} ${maxStr})`);
+                                    channel.send(`T${track.currentTier} ${track.name} had a game with ${(change).toLocaleString()} EP. Current EP: ${score.toLocaleString()} EP (${minStr} ${maxStr})`);
                                 } catch (e) {
                                     console.log('Error occured while sending message: ', e);
                                 }
