@@ -614,7 +614,7 @@ module.exports = {
     const eventId = interaction.options.getInteger('event') || event.id;
     const palleteIndex = interaction.options.getInteger('pallete') || 0;
     let offset = interaction.options.getInteger('offset');
-    let annotategames = interaction.options.getBoolean('annotategames') || false;
+    let annotategames = interaction.options.getBoolean('annotategames') ?? true;
     let bypoints = interaction.options.getBoolean('bypoints') || false;
 
     if (offset == null && offset != 0) offset = 18;
