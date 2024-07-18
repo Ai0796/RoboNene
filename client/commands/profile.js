@@ -121,8 +121,8 @@ async function overlayCard(image, rarityType, attributeType, mastery, level, tra
     .toBuffer();
   const levelBorder = await sharp('./gacha/levelBorder.png')
     .toBuffer();
-
   image = await image
+    .resize({ width: 600, height: 576 , fit: 'fill' })
     .extract({ left: 135, top: 0, width: 330, height: 520 });
   let frame = await sharp(framePath)
     .resize(330, 520)
