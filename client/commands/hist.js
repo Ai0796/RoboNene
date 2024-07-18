@@ -105,11 +105,15 @@ function getLastHour(sortedList, el) {
   if (sortedList.length === 0) {
     return 0;
   }
-  let val = sortedList.reduce(function (prev, curr) {
-    return (Math.abs(curr - el) < Math.abs(prev - el) ? curr : prev);
-  });
+  for (let i = 0; i < sortedList.length; i++) {
+    if (sortedList[i] > el) {
+      return i;
+    }
+  }
 
-  return Math.max(sortedList.indexOf(val), 0);
+  return sortedList.length - 1;
+
+  // return Math.max(sortedList.indexOf(val), 0);
 }
 
 /**
@@ -143,7 +147,7 @@ const postQuickChart = async (interaction, tier, rankData, binSize, min, max, ho
   var lowBound;
 
   if (!hourly) {
-    highBound = Math.min(max || 75000, 75000);
+    highBound = Math.min(max || 150000, 150000);
     lowBound = Math.max(min || 100, 100);
   }
   else {
@@ -165,7 +169,7 @@ const postQuickChart = async (interaction, tier, rankData, binSize, min, max, ho
         if (change < highBound && change >= lowBound) {
           if (showGames) {
             let games = 0;
-            for (let j = timestampIndex; j < i; j++) {
+            for (let j = timestampIndex; j <= i; j++) {
               if (j <= 0) {
                 continue;
               }
