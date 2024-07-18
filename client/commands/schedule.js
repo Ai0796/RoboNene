@@ -115,27 +115,24 @@ const createScheduleEmbed = (eventData, vLiveData, client) => {
     runningVLives.forEach(vLiveIdx => {
 
       let lives = vLiveData[vLiveIdx]['virtualLiveSchedules'];
-      let currentLive = -1;
       let currentLiveIdx = -1;
 
       for (let i = 0; i < lives.length; i++) {
         lives[i].startAt = Math.floor(lives[i].startAt / 1000);
-        if (lives[i].startAt > Math.floor(currentDate / 1000) && currentLive === -1) {
-          currentLive = lives[i];
+        if (lives[i].startAt > Math.floor(currentDate / 1000) && currentLiveIdx === -1) {
           currentLiveIdx = i;
         }
       }
 
-      if (currentLive === -1) {
+      if (currentLiveIdx === -1) {
         return;
       }
 
-      let nextLives = lives.slice(currentLiveIdx + 1);
+      let nextLives = lives.slice(currentLiveIdx);
 
       scheduleEmbed.addFields(
         { name: '**__Virtual Live__**', value: `${vLiveData[vLiveIdx]['name']}` },
-        { name: 'Next Show', value: `<t:${currentLive['startAt']}:R>` },
-        { name: 'Other Shows', value: nextLives.map((x) => `<t:${x['startAt']}:R> on <t:${x['startAt']}:f>`).join('\n') },
+        { name: 'Show Times', value: nextLives.map((x) => `<t:${x['startAt']}:R> at <t:${x['startAt']}:f>`).join('\n') },
       );
     });
   } else {
