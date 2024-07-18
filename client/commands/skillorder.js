@@ -15,7 +15,7 @@ const fs = require('fs');
 const generateSkillText = require('../methods/generateSkillText');
 
 //Required since Proseka Skill order is not 1 2 3 4 5
-const ProsekaSkillOrder = [2, 1, 4, 5, 3, 'E'];
+const ProsekaSkillOrder = [1, 2, 3, 4, 5, 'E'];
 const Difficulties = ['easy', 'normal', 'hard', 'expert', 'master'];
 
 /**
@@ -132,6 +132,7 @@ module.exports = {
                     .setColor(NENE_COLOR)
                     .setTitle(`${musicData.musics[id]}`)
                     .setTimestamp()
+                    .addFields({name: 'NOTE', value: 'Due to the removal of a set order, order is now shown in procs, (e.g. 5 = 5th skill proc)', inline: false})
                     .addFields({name: 'Skill Orders', value: skillOrderText, inline: false})
                     .setFooter({text: FOOTER, iconURL: interaction.user.displayAvatarURL()});
 
