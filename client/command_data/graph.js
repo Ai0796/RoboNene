@@ -29,10 +29,10 @@ module.exports = {
             'description': 'Whether to graph by tier or by id (defaults to ID)',
           },
           {
-            'type': 'integer',
+            'type': 'string',
             'name': 'event',
             'required': false,
-            'description': 'The event to display for',
+            'description': 'The event to display for, multiple events can be entered in the format {id}, {id}, etc.',
           }
         ]
       },
@@ -47,10 +47,10 @@ module.exports = {
           'description': 'A linked User that has been tracked'
           },
           {
-            'type': 'integer',
+            'type': 'string',
             'name': 'event',
             'required': false,
-            'description': 'The event to display for',
+            'description': 'The event to display for, multiple events can be entered in the format {id}, {id}, etc.'
           }
         ]
       }
