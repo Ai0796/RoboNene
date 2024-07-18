@@ -175,7 +175,7 @@ async function getCutoffs(discordClient) {
                     });
                 }
 
-                if (tier['userId'] in userTrack) {
+                if (tier['userId'].toString() in userTrack) {
                     userTrack[tier['userId']].forEach((track) => {
                         track.currentTier = i+1;
                         let lastScore = track.lastScore;
