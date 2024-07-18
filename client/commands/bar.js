@@ -320,7 +320,7 @@ const postQuickChart = async (interaction, tier, rankData, eventData, hour, disc
   rankData.forEach(point => {
     if (point.score > lastPoint) {
       let gain = point.score - lastPoint;
-      if (gain < 75000 && gain >= 100) {
+      if (gain < 150000 && gain >= 100) {
         pointsPerGame.push(gain);
       }
       lastPoint = point.score;
@@ -356,7 +356,7 @@ const postQuickChart = async (interaction, tier, rankData, eventData, hour, disc
     }
     if (point.score > lastPoint) {
       let gain = point.score - lastPoint;
-      if (gain < 75000 && gain >= 100) {
+      if (gain < 150000 && gain >= 100) {
         games.push(gain);
       }
       lastPoint = point.score;
