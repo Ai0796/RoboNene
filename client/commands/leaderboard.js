@@ -196,7 +196,7 @@ module.exports = {
       
       let leaderboardEmbed = new EmbedBuilder()
         .setColor(NENE_COLOR)
-        .setTitle(`${event.name}`)
+        .setTitle(`${event.name} Nyaa~`)
         .setDescription(`T100 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>`)
         .addFields({name: `Page ${page+1}`, value: leaderboardText, inline: false})
         .setThumbnail(event.banner)
@@ -317,8 +317,8 @@ module.exports = {
         }
         leaderboardEmbed = new EmbedBuilder()
           .setColor(NENE_COLOR)
-          .setTitle(`${event.name}`)
-          .setDescription(`T100 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>`)
+          .setTitle(`${event.name} Nyaa~`)
+          .setDescription(`T100 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>\n`)
           .addFields({name: `Page ${page+1} / ${MAX_PAGE+1}`, value: leaderboardText, inline: false})
           .setThumbnail(event.banner)
           .setTimestamp()

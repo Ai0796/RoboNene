@@ -31,7 +31,7 @@ const { NENE_COLOR, FOOTER } = require('../../constants');
 const generateEmbed = ({ name, image, client }) => {
     const embed = new EmbedBuilder()
         .setColor(NENE_COLOR)
-        .setTitle(name.charAt(0).toUpperCase() + name.slice(1))
+        .setTitle(name.charAt(0).toUpperCase() + name.slice(1) + ' Nyaa~')
         .setTimestamp()
         .setFooter({text: FOOTER, iconURL: client.user.displayAvatarURL()});
 

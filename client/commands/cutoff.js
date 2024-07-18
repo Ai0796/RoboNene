@@ -344,7 +344,7 @@ const generateCutoff = async ({ interaction, event,
 
   const cutoffEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle(`${event.name} T${tier} Cutoff`)
+    .setTitle(`${event.name} T${tier} Cutoff Nyaa~`)
     .setDescription(`**Requested:** <t:${Math.floor(timestamp / 1000)}:R>`)
     .setThumbnail(event.banner)
     .addFields(

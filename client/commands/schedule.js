@@ -66,7 +66,7 @@ const createScheduleEmbed = (eventData, vLiveData, client) => {
   // Event Schedule
   let scheduleEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle('Event Schedule')
+    .setTitle('Event Schedule Nyaa~')
     .addFields(
       { name: '**__Next Daily Reset__**', value: `<t:${nextReset}> - <t:${nextReset}:R>` },
       { name: '** **', value: '** **' },

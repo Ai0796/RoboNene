@@ -23,7 +23,7 @@ const getEventData = require('../methods/getEventData');
 const generateGraphEmbed = (graphUrl, tier, discordClient) => {
   const graphEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle(`${tier}`)
+    .setTitle(`${tier} Nyaa~`)
     .setDescription(`**Requested:** <t:${Math.floor(Date.now() / 1000)}:R>`)
     .setThumbnail(discordClient.client.user.displayAvatarURL())
     .setImage(graphUrl)

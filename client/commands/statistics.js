@@ -39,7 +39,7 @@ const energyBoost = [
 const generateEmbed = ({ name, client }) => {
     const embed = new EmbedBuilder()
         .setColor(NENE_COLOR)
-        .setTitle(name.charAt(0).toUpperCase() + name.slice(1))
+        .setTitle(name.charAt(0).toUpperCase() + name.slice(1) + ' Nyaa~')
         .setThumbnail(client.user.displayAvatarURL())
         .setTimestamp()
         .setFooter({text: FOOTER, iconURL: client.user.displayAvatarURL()});

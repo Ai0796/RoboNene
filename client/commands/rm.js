@@ -330,7 +330,7 @@ module.exports = {
 
             let prompt = new EmbedBuilder()
                 .setColor('#0099ff')
-                .setTitle('Room Change')
+                .setTitle('Room Change Nyaa~')
                 .setDescription(`Do you want to change the room code to ${channelName}?`)
                 .setFooter({text: 'This prompt will expire in 30 seconds'});
             

@@ -11,9 +11,9 @@ module.exports = {
   once: true,
   execute(client) {
     console.log(`Ready on ${client.guilds.cache.size} servers, for a total of ${client.users.cache.size} users`);
-    for (const guild of client.guilds.cache.values()) {
-      console.log(` - ${guild.name} Member Count: ${guild.memberCount} (${guild.id})`);
-    }
+    // for (const guild of client.guilds.cache.values()) {
+    //   console.log(` - ${guild.name} Member Count: ${guild.memberCount} (${guild.id})`);
+    // }
     client.user.setActivity(BOT_ACTIVITY() + 
       `${client.guilds.cache.size} ${(client.guilds.cache.size > 1) ? 'servers' : 'server'}`);
   }

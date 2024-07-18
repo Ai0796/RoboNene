@@ -130,7 +130,7 @@ module.exports = {
                 //Generate Embed with given text
                 let skillOrderEmbed = new EmbedBuilder()
                     .setColor(NENE_COLOR)
-                    .setTitle(`${musicData.musics[id]}`)
+                    .setTitle(`${musicData.musics[id]} Nyaa~`)
                     .setTimestamp()
                     .addFields({name: 'NOTE', value: 'Due to the removal of a set order, order is now shown in procs, (e.g. 5 = 5th skill proc)', inline: false})
                     .addFields({name: 'Skill Orders', value: skillOrderText, inline: false})

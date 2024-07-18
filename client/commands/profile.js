@@ -367,7 +367,7 @@ const generateProfileEmbed = async (discordClient, userId, data, private) => {
   // Create the Embed for the profile using the pregenerated values
   const profileEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle(`${data.user.name}'s Profile`)
+    .setTitle(`${data.user.name}'s Profile Nyaa~d`)
     .setDescription(`**Requested:** <t:${Math.floor(Date.now()/1000)}:R>`)
     .setAuthor({ 
       name: `${data.user.name}`, 

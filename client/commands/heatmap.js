@@ -122,7 +122,7 @@ const labels = [
 const generateGraphEmbed = (graphUrl, tier, discordClient) => {
   const graphEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle(`${tier}`)
+    .setTitle(`${tier} Nyaa~`)
     .setDescription(`**Requested:** <t:${Math.floor(Date.now()/1000)}:R>`)
     .setThumbnail(discordClient.client.user.displayAvatarURL())
     .setImage(graphUrl)
@@ -140,6 +140,299 @@ const generateGraphEmbed = (graphUrl, tier, discordClient) => {
 function ensureASCII(str) {
   return str.replace(/[^a-z0-9&]/gi, ' ');
 }
+
+const postRabbit = async (interaction, title, eventData, offset, pallete, annotategames, bypoints, discordClient) => {
+  let maxGamesPerHour = 34;
+
+  let xValues = [];
+  let yValues = [];
+
+  const weekday = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  let daysofweek = [];
+
+  let heatmapData = [
+    [15, 15, 15, 15, 0 , 0 , 0 , 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 0 , 0 , 0 , 15, 15, 15, 15],
+    [15, 15, 15, 0 , 30, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 30, 0 , 15, 15, 15],
+    [15, 15, 0 , 30, 30, 30, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 30, 30, 30, 0 , 15, 15],
+    [15, 15, 0 , 30, 34, 34, 30, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 30, 34, 34, 30, 0 , 15, 15],
+    [15, 15, 0 , 30, 34, 34, 34, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 34, 34, 34, 30, 0 , 15, 15],
+    [15, 15, 0 , 30, 30, 34, 34, 34, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 34, 34, 34, 30, 30, 0 , 15, 15],
+    [15, 15, 0 , 30, 30, 34, 34, 34, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 34, 34, 34, 30, 30, 0 , 15, 15],
+    [15, 15, 15, 0 , 30, 30, 34, 34, 34, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 15, 15, 0 , 30, 34, 34, 34, 30, 30, 0 , 15, 15, 15],
+    [15, 15, 15, 0 , 30, 30, 34, 34, 34, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 34, 34, 34, 30, 30, 0 , 15, 15, 15],
+    [15, 15, 15, 15, 0 , 30, 30, 34, 34, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 34, 34, 30, 30, 0 , 15, 15, 15, 15],
+    [15, 15, 15, 15, 0 , 30, 30, 34, 34, 34, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 0 , 30, 34, 34, 34, 30, 30, 0 , 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 0 , 30, 30, 34, 34, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 0 , 30, 34, 34, 30, 30, 0 , 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 0 , 30, 30, 34, 34, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 0 , 30, 34, 34, 30, 30, 0 , 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 15, 0 , 30, 30, 34, 30, 30, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 30, 30, 34, 30, 30, 0 , 15, 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 15, 15, 0 , 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 0 , 15, 15, 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 15, 0 , 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 0 , 15, 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 15, 0 , 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 0 , 15, 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 0 , 30, 30, 30, 30, 0 , 5 , 30, 30, 30, 30, 30, 30, 30, 0 , 5 , 30, 30, 30, 30, 0 , 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 15, 0 , 30, 30, 30, 30, 0 , 0 , 30, 30, 32, 32, 32, 30, 30, 0 , 0 , 30, 30, 30, 30, 0 , 15, 15, 15, 15, 15],
+    [15, 15, 15, 0 , 0 , 0 , 0 , 0 , 32, 32, 30, 30, 30, 30, 30, 32, 30, 30, 30, 30, 30, 32, 32, 0 , 0 , 0 , 0 , 0 , 15, 15, 15],
+    [0 , 0 , 0 , 15, 15, 0 , 30, 32, 32, 32, 32, 30, 30, 30, 30, 0 , 30, 30, 30, 30, 32, 32, 32, 32, 30, 0 , 15, 15, 0 , 0 , 0 ],
+    [15, 15, 15, 15, 15, 15, 0 , 0 , 32, 32, 32, 30, 30, 30, 30, 30, 30, 30, 30, 30, 32, 32, 32, 0 , 0 , 15, 15, 15, 15, 15, 15],
+    [15, 15, 15, 15, 0 , 0 , 0 , 32, 32, 32, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 32, 32, 32, 0 , 0 , 0 , 15, 15, 15, 15],
+    [15, 0 , 0 , 0 , 15, 15, 15, 0 , 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 0 , 15, 15, 15, 0 , 0 , 0 , 15],
+    [15, 15, 15, 15, 15, 15, 15, 15, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 15, 15, 15, 15, 15, 15, 15, 15]
+  ];
+
+  heatmapData.reverse();
+
+  for (let i = 0; i < heatmapData.length; i++) {
+    let date = new Date((eventData.startAt + (i * DAY)));
+    if (offset < 15) date.setDate(date.getDate() + + 1);
+
+    daysofweek.push(weekday[date.getDay()]);
+  }
+
+  for (let i = 0; i < 32; i++) {
+    xValues.push(i + 0.5);
+  }
+
+  for (let i = 0; i < heatmapData.length; i++) {
+    yValues.unshift(`${daysofweek[i]} Day ${i + 1}`);
+  }
+  
+  let trace1 = {
+    mode: 'markers',
+    type: 'heatmap',
+    x: xValues,
+    y: yValues,
+    z: heatmapData,
+    ytype: 'array',
+    zauto: false,
+    opacity: 1,
+    visible: true,
+    xperiod: 0,
+    yperiod: 0,
+    zsmooth: false,
+    hoverongaps: false,
+    reversescale: true,
+    colorscale: pallete,
+    xgap: 0.3,
+    ygap: 0.3,
+    autocolorscale: false,
+    zmin: 0,
+    zmax: maxGamesPerHour,
+  };
+
+  let layout = {
+    title: { text: title },
+    xaxis: {
+      title: 'Hour',
+      side: 'top',
+      dtick: 1
+    },
+    yaxis: {
+      title: 'Day',
+      type: 'category'
+    },
+    annotations: [],
+    legend: { title: { text: '<br>' } },
+    autosize: true,
+    colorway: ['#b3e2cd', '#fdcdac', '#cbd5e8', '#f4cae4', '#e6f5c9', '#fff2ae', '#f1e2cc', '#cccccc'],
+    dragmode: 'zoom',
+    template: {
+      data: {
+        heatmap: [
+          {
+            type: 'heatmap',
+            colorbar: {
+              ticks: '',
+              outlinewidth: 0
+            },
+            autocolorscale: true
+          }
+        ]
+      },
+      layout: {
+        geo: {
+          bgcolor: 'rgb(17,17,17)',
+          showland: true,
+          lakecolor: 'rgb(17,17,17)',
+          landcolor: 'rgb(17,17,17)',
+          showlakes: true,
+          subunitcolor: '#506784'
+        },
+        font: { color: '#f2f5fa' },
+        polar: {
+          bgcolor: 'rgb(17,17,17)',
+          radialaxis: {
+            ticks: '',
+            gridcolor: '#506784',
+            linecolor: '#506784'
+          },
+          angularaxis: {
+            ticks: '',
+            gridcolor: '#506784',
+            linecolor: '#506784'
+          }
+        },
+        scene: {
+          xaxis: {
+            ticks: '',
+            gridcolor: '#506784',
+            gridwidth: 2,
+            linecolor: '#506784',
+            zerolinecolor: '#C8D4E3',
+            showbackground: true,
+            backgroundcolor: 'rgb(17,17,17)'
+          },
+          yaxis: {
+            ticks: '',
+            gridcolor: '#506784',
+            gridwidth: 2,
+            linecolor: '#506784',
+            zerolinecolor: '#C8D4E3',
+            showbackground: true,
+            backgroundcolor: 'rgb(17,17,17)'
+          },
+          zaxis: {
+            ticks: '',
+            gridcolor: '#506784',
+            gridwidth: 2,
+            linecolor: '#506784',
+            zerolinecolor: '#C8D4E3',
+            showbackground: true,
+            backgroundcolor: 'rgb(17,17,17)'
+          }
+        },
+        title: { x: 0.05 },
+        xaxis: {
+          ticks: '',
+          gridcolor: '#283442',
+          linecolor: '#506784',
+          automargin: true,
+          zerolinecolor: '#283442',
+          zerolinewidth: 2
+        },
+        yaxis: {
+          ticks: '',
+          gridcolor: '#283442',
+          linecolor: '#506784',
+          automargin: true,
+          zerolinecolor: '#283442',
+          zerolinewidth: 2
+        },
+        ternary: {
+          aaxis: {
+            ticks: '',
+            gridcolor: '#506784',
+            linecolor: '#506784'
+          },
+          baxis: {
+            ticks: '',
+            gridcolor: '#506784',
+            linecolor: '#506784'
+          },
+          caxis: {
+            ticks: '',
+            gridcolor: '#506784',
+            linecolor: '#506784'
+          },
+          bgcolor: 'rgb(17,17,17)'
+        },
+        colorway: ['#636efa', '#EF553B', '#00cc96', '#ab63fa', '#19d3f3', '#e763fa', '#fecb52', '#ffa15a', '#ff6692', '#b6e880'],
+        hovermode: 'closest',
+        colorscale: {
+          diverging: [['0', '#8e0152'], ['0.1', '#c51b7d'], ['0.2', '#de77ae'], ['0.3', '#f1b6da'], ['0.4', '#fde0ef'], ['0.5', '#f7f7f7'], ['0.6', '#e6f5d0'], ['0.7', '#b8e186'], ['0.8', '#7fbc41'], ['0.9', '#4d9221'], ['1', '#276419']],
+          sequential: [['0', '#0508b8'], ['0.0893854748603352', '#1910d8'], ['0.1787709497206704', '#3c19f0'], ['0.2681564245810056', '#6b1cfb'], ['0.3575418994413408', '#981cfd'], ['0.44692737430167595', '#bf1cfd'], ['0.5363128491620112', '#dd2bfd'], ['0.6256983240223464', '#f246fe'], ['0.7150837988826816', '#fc67fd'], ['0.8044692737430168', '#fe88fc'], ['0.8938547486033519', '#fea5fd'], ['0.9832402234636871', '#febefe'], ['1', '#fec3fe']],
+          sequentialminus: [['0', '#0508b8'], ['0.0893854748603352', '#1910d8'], ['0.1787709497206704', '#3c19f0'], ['0.2681564245810056', '#6b1cfb'], ['0.3575418994413408', '#981cfd'], ['0.44692737430167595', '#bf1cfd'], ['0.5363128491620112', '#dd2bfd'], ['0.6256983240223464', '#f246fe'], ['0.7150837988826816', '#fc67fd'], ['0.8044692737430168', '#fe88fc'], ['0.8938547486033519', '#fea5fd'], ['0.9832402234636871', '#febefe'], ['1', '#fec3fe']]
+        },
+        plot_bgcolor: 'rgb(17,17,17)',
+        paper_bgcolor: 'rgb(17,17,17)',
+        shapedefaults: {
+          line: { width: 0 },
+          opacity: 0.4,
+          fillcolor: '#f2f5fa'
+        },
+        sliderdefaults: {
+          bgcolor: '#C8D4E3',
+          tickwidth: 0,
+          bordercolor: 'rgb(17,17,17)',
+          borderwidth: 1
+        },
+        annotationdefaults: {
+          arrowhead: 0,
+          arrowcolor: '#f2f5fa',
+          arrowwidth: 1
+        },
+        updatemenudefaults: {
+          bgcolor: '#506784',
+          borderwidth: 0
+        }
+      },
+      themeRef: 'PLOTLY_DARK'
+    },
+    hovermode: 'closest',
+    colorscale: {
+      diverging: [['0', '#40004b'], ['0.1', '#762a83'], ['0.2', '#9970ab'], ['0.3', '#c2a5cf'], ['0.4', '#e7d4e8'], ['0.5', '#f7f7f7'], ['0.6', '#d9f0d3'], ['0.7', '#a6dba0'], ['0.8', '#5aae61'], ['0.9', '#1b7837'], ['1', '#00441b']],
+      sequential: [['0', '#000004'], ['0.1111111111111111', '#1b0c41'], ['0.2222222222222222', '#4a0c6b'], ['0.3333333333333333', '#781c6d'], ['0.4444444444444444', '#a52c60'], ['0.5555555555555556', '#cf4446'], ['0.6666666666666666', '#ed6925'], ['0.7777777777777778', '#fb9b06'], ['0.8888888888888888', '#f7d13d'], ['1', '#fcffa4']],
+      sequentialminus: [['0', '#0508b8'], ['0.08333333333333333', '#1910d8'], ['0.16666666666666666', '#3c19f0'], ['0.25', '#6b1cfb'], ['0.3333333333333333', '#981cfd'], ['0.4166666666666667', '#bf1cfd'], ['0.5', '#dd2bfd'], ['0.5833333333333334', '#f246fe'], ['0.6666666666666666', '#fc67fd'], ['0.75', '#fe88fc'], ['0.8333333333333334', '#fea5fd'], ['0.9166666666666666', '#febefe'], ['1', '#fec3fe']]
+    },
+    showlegend: false
+  };
+
+  if (annotategames) {
+    for (let x = 0; x < xValues.length; x++) {
+      for (let y = 0; y < yValues.length; y++) {
+        let currentVal = heatmapData[y][x];
+        var textColor;
+        if (currentVal < 1) {
+          textColor = 'white';
+        } else {
+          textColor = 'black';
+        }
+
+        let result = {};
+
+        if (currentVal !== null && currentVal !== undefined) {
+          let size = 20;
+          if (bypoints) {
+
+            let labelIndex = Math.floor((currentVal.toString().length - 1) / 3);
+            let ending = labels[labelIndex];
+            let num = (currentVal / (1000 ** labelIndex)).toFixed(1);
+            currentVal = `${num}${ending}`;
+            size = 10;
+          }
+          result = {
+            x: xValues[x],
+            y: y,
+            text: currentVal,
+            font: {
+              family: 'Arial',
+              size: size,
+              color: textColor
+            },
+            showarrow: false
+          };
+        }
+
+        layout.annotations.push(result);
+      }
+    }
+  }
+
+  let data = {
+    data: [trace1],
+    layout: layout
+  };
+
+  var pngOptions = { format: 'png', width: 1000, height: 500 };
+    Plotly.getImage(data, pngOptions, async (err, imageStream) => {
+    if (err) console.log(err);
+    let file = new AttachmentBuilder(imageStream, { name: 'hist.png' });
+    await interaction.editReply({
+      embeds: [generateGraphEmbed('attachment://hist.png', title, discordClient)], files: [file]
+    });
+  });
+};
 
 /**
  * Operates on a http request and returns the url embed of the graph using quickchart.io
@@ -171,7 +464,7 @@ const postQuickChart = async (interaction, tier, rankData, eventData, offset, pa
   rankData.forEach(point => {
     if (point.score > lastPoint) {
       let gain = point.score - lastPoint;
-      if (gain < 75000 && gain >= 100) {
+      if (gain < 150000 && gain >= 100) {
         pointsPerGame.push(gain);
       }
       lastPoint = point.score;
@@ -218,7 +511,7 @@ const postQuickChart = async (interaction, tier, rankData, eventData, offset, pa
     }
     if (point.score > lastPoint) {
       let gain = point.score - lastPoint;
-      if (gain < 75000 && gain >= 100) {
+      if (gain < 150000 && gain >= 100) {
         if (bypoints) {
           gamesPerHour += gain;
         } else {
@@ -545,7 +838,7 @@ async function sendHistoricalTierRequest(eventData, tier, interaction, offset, p
     noDataErrorMessage(interaction, discordClient);
   } else {
     let userId = response[0]['ID']; //Get the last ID in the list
-
+    
     let data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
       'WHERE (ID=@id AND EventID=@eventID)').all({
         id: userId,
@@ -645,6 +938,10 @@ module.exports = {
           tier: tier,
           eventID: eventId
         });
+      if (eventId == 33 && tier == 1) {
+        postRabbit(interaction, 'T1 Moon Rabbits Heatmap', eventData, offset, pallete, annotategames, bypoints, discordClient);
+        return;
+      }
       if (data.length == 0) {
         noDataErrorMessage(interaction, discordClient);
         return;
