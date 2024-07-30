@@ -154,7 +154,7 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
 };
 
 async function noDataErrorMessage(interaction, discordClient) {
-  let reply = 'Please input a tier in the range 1-100 or input 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, or 50000';
+  let reply = 'Please input a tier in the range 1-100';
   let title = 'Tier Not Found';
 
   await interaction.editReply({
@@ -194,7 +194,7 @@ function getTierData(tier, event, discordClient) {
   return data;
 }
 
-async function getTierPlayerData(tier, event, discordClient) {
+function getTierPlayerData(tier, event, discordClient) {
 
   let data = discordClient.cutoffdb.prepare('SELECT ID, Score FROM cutoffs ' +
     'WHERE (EventID=@eventID AND Tier=@tier) ORDER BY TIMESTAMP DESC').all({
@@ -212,7 +212,6 @@ async function getTierPlayerData(tier, event, discordClient) {
     if (data.length > 0) {
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
       rankData.unshift({ timestamp: event.startAt, score: 0 });
-      rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
 
       return rankData;
     }
