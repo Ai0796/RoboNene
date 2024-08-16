@@ -31,6 +31,7 @@ Arial.ttf
 /cutoff_data
 /prayer_data
 /stock_data
+/data
 
 # local env files
 .env.local
