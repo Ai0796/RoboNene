@@ -9,6 +9,28 @@ module.exports = {
         'utilization': '/waitlist',
         'description': 'creates a waitlist queue for users to join and leave',
         'ephemeral': false,
+        'subcommands': [
+            {
+                'name': 'show',
+                'description': 'Shows the current waitlist queue',
+            },
+            {
+                'name': 'remove',
+                'description': 'Get information on a specific tier on the leaderboard.',
+                'params': [
+                    {
+                        'type': 'user',
+                        'name': 'user',
+                        'required': true,
+                        'description': 'The user to remove'
+                    }
+                ]
+            },
+            {
+                'name': 'clear',
+                'description': 'Clears the waitlist queue'
+            }
+        ]
     },
 
     'CONSTANTS': {

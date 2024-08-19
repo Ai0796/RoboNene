@@ -188,7 +188,25 @@ module.exports = {
             ephemeral: COMMAND.INFO.ephemeral
         });
 
-        createWaitlist(interaction, discordClient);
+        if (!DATA) {
+            DATA = loadData();
+        }
+
+        if (interaction.options.getSubcommand() === 'show') {
+            createWaitlist(interaction, discordClient);
+        } else if (interaction.options.getSubcommand() === 'remove') {
+
+            const user = interaction.options.getUser('user') ?? null;
+            let channel_id = interaction.channel.id.toString();
+            let user_id = user.id.toString();
+
+            DATA[channel_id].users = DATA[channel_id].users.filter(u => u !== user_id);
+            createWaitlist(interaction, discordClient);
+        } else if (interaction.options.getSubcommand() === 'clear') {
+            let channel_id = interaction.channel.id.toString();
+            DATA[channel_id].users = [];
+            createWaitlist(interaction, discordClient);
+        }        
     }
 };
 
