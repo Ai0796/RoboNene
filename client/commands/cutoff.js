@@ -408,6 +408,33 @@ const generateCutoff = async ({ interaction, event,
   }
 };
 
+const getWorldLink = (eventId) => {
+  let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+  worldLink = worldLink.filter((x) => x.eventId === eventId);
+
+  let idx = -1;
+  let currentTime = Date.now();
+
+  worldLink.forEach((x, i) => {
+    if (x.chapterEndAt >= currentTime && x.chapterStartAt <= currentTime) {
+      idx = i;
+    }
+  });
+
+  if (idx == -1) {
+    return -1;
+  }
+  else {
+    return worldLink[idx];
+  }
+};
+
+const getCharacterName = (characterId) => {
+  const gameCharacters = JSON.parse(fs.readFileSync('./sekai_master/gameCharacters.json'));
+  const charInfo = gameCharacters[characterId - 1];
+  return `${charInfo.givenName} ${charInfo.firstName}`.trim();
+};
+
 module.exports = {
   ...COMMAND.INFO,
   data: generateSlashCommand(COMMAND.INFO),
@@ -450,8 +477,8 @@ module.exports = {
 
     const timestamp = Date.now();
 
-    let paramCount = interaction.options._hoistedOptions.length;
-    let detailed = (paramCount === 1) ? false : interaction.options._hoistedOptions[1].value;
+    let detailed = interaction.options.getBoolean('detailed') ?? false;
+    let chapter = interaction.options.getBoolean('chapter') ?? false;
 
     try {
       // Use online predicted database
@@ -488,7 +515,34 @@ module.exports = {
         });
       }
       // Otherwise use internal data 
-      else {
+      else if (chapter && event.eventType === 'world_bloom') {
+
+        console.log(`Getting World Link for ${event.id}`);
+
+        let world_link = getWorldLink(event.id);
+        let cutoffs = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
+          'WHERE (EventID=@eventID AND Tier=@tier)').all({
+            eventID: parseInt(`${event.id}${world_link.gameCharacterId}`),
+            tier: tier
+          });
+        let rankData = cutoffs.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+
+        console.log(rankData.length);
+
+        world_link.startAt = world_link.chapterStartAt;
+        world_link.id = event.id;
+        world_link.name = `${getCharacterName(world_link.gameCharacterId)}'s Chapter`;
+        generateCutoff({
+          interaction: interaction,
+          event: world_link,
+          timestamp: timestamp,
+          tier: tier,
+          score: rankData[rankData.length - 1].score,
+          rankData: rankData,
+          detailed: detailed,
+          discordClient: discordClient,
+        });
+      } else {
         let cutoffs = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
           'WHERE (EventID=@eventID AND Tier=@tier)').all({
             eventID: event.id,

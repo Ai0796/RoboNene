@@ -26,11 +26,7 @@ module.exports = {
           ['T30', 30],
           ['T40', 40],
           ['T50', 50],
-          ['T100', 100],
-          ['T500 (ML)', 500],
-          ['T1000 (ML)', 1000],
-          ['T5000 (ML)', 5000],
-          ['T10000 (ML)', 10000],
+          ['T100', 100]
         ]
       },
       {
@@ -38,6 +34,12 @@ module.exports = {
         'name': 'detailed',
         'required': false,
         'description': 'Show extra detailed cutoff information'
+      },
+      {
+        'type': 'boolean',
+        'name': 'chapter',
+        'required': false,
+        'description': 'Get prediction for chapter (World Link only)'
       }
     ]
   },
