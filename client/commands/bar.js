@@ -3,17 +3,14 @@
  * @author Ai0796
  */
 
-const { AttachmentBuilder, EmbedBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js');
+const { EmbedBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js');
 const { NENE_COLOR, FOOTER } = require('../../constants');
-const { plotlyKey, plotlyUser } = require('../../config.json');
 
 const COMMAND = require('../command_data/bar');
 
 const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed'); 
 const getEventData = require('../methods/getEventData');
-
-const Plotly = require('plotly')(plotlyUser, plotlyKey);
 
 const HOUR = 3600000; 
 
@@ -24,13 +21,13 @@ const HOUR = 3600000;
  * @param {DiscordClient} client we are using to interact with discord
  * @return {EmbedBuilder} graph embed to be used as a reply via interaction
  */
-const generateGraphEmbed = (graphUrl, tier, discordClient) => {
+const generateBarEmbed = (title, body, discordClient) => {
   const graphEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle(`${tier} Nyaa~`)
+    .setTitle(`${title} Nyaa~`)
+    .setFields(body)
     .setDescription(`**Requested:** <t:${Math.floor(Date.now()/1000)}:R>`)
     .setThumbnail(discordClient.client.user.displayAvatarURL())
-    .setImage(graphUrl)
     .setTimestamp()
     .setFooter({text: FOOTER, iconURL: discordClient.client.user.displayAvatarURL()});
 
@@ -52,232 +49,44 @@ function ensureASCII(str) {
  * @param {Integer} hour hour to display the graph for
  * @returns {ImageData} the url of the graph
  */
-const generateGraph = (data, hour) => {
+const generateGraph = (data, hour, eventStart) => {
+
+  const formatTime = (timestamp) => {
+    let hour = timestamp / 1000 / 60 / 60;
+    let minute = (hour - Math.floor(hour)) * 60;
+    return `${Math.floor(minute)}`;
+  };
 
   if (hour < 0 || hour > data.length - 1) {
-    return null;
+    return { name: 'Error', value: 'No data available' };
   }
 
-  let title = `Points Per Game Hour ${hour}-${hour+1}`;
+  let lines = [];
 
-  let xValues = [];
-  let yValues = data[hour];
+  data[hour].forEach((point) => {
+    lines.push(`${formatTime(point.timestamp - eventStart)}: **${point.score.toLocaleString()}**`);
+  });
 
-  for (let i = 0; i < data[hour].length; i++) {
-    xValues.push(i + 1);
-  }
-
-  let maxVal = Math.max(...yValues);
-  let minVal = Math.min(...yValues);
-
-  let upperBound = maxVal + Math.ceil(maxVal / 50);
-  let lowerBound = Math.max(minVal - Math.floor(maxVal / 50), 0);
-
-  let trace1 = {
-    mode: 'markers',
-    type: 'bar',
-    x: xValues,
-    y: yValues,
-    text: yValues.map(String),
-    textposition: 'auto',
-    hoverinfo: 'none',
-    ytype: 'array',
-    opacity: 1,
-    visible: true,
-    xperiod: 0,
-    yperiod: 0,
-    hoverongaps: false,
-  };
-  
-  let layout = {
-    title: { text: title },
-    xaxis: {
-      title: 'Game',
-      dtick: 1
-    },
-    yaxis: {
-      title: 'EP',
-      range: [lowerBound, upperBound],
-    },
-    annotations: [],
-    legend: { title: { text: '<br>' } },
-    autosize: true,
-    dragmode: 'zoom',
-    template: {
-      data: {
-        heatmap: [
-          {
-            type: 'heatmap',
-            colorbar: {
-              ticks: '',
-              outlinewidth: 0
-            },
-            autocolorscale: true
-          }
-        ]
-      },
-      layout: {
-        geo: {
-          bgcolor: 'rgb(17,17,17)',
-          showland: true,
-          lakecolor: 'rgb(17,17,17)',
-          landcolor: 'rgb(17,17,17)',
-          showlakes: true,
-          subunitcolor: '#506784'
-        },
-        font: { color: '#f2f5fa' },
-        polar: {
-          bgcolor: 'rgb(17,17,17)',
-          radialaxis: {
-            ticks: '',
-            gridcolor: '#506784',
-            linecolor: '#506784'
-          },
-          angularaxis: {
-            ticks: '',
-            gridcolor: '#506784',
-            linecolor: '#506784'
-          }
-        },
-        scene: {
-          xaxis: {
-            ticks: '',
-            gridcolor: '#506784',
-            gridwidth: 2,
-            linecolor: '#506784',
-            zerolinecolor: '#C8D4E3',
-            showbackground: true,
-            backgroundcolor: 'rgb(17,17,17)'
-          },
-          yaxis: {
-            ticks: '',
-            gridcolor: '#506784',
-            gridwidth: 2,
-            linecolor: '#506784',
-            zerolinecolor: '#C8D4E3',
-            showbackground: true,
-            backgroundcolor: 'rgb(17,17,17)'
-          },
-          zaxis: {
-            ticks: '',
-            gridcolor: '#506784',
-            gridwidth: 2,
-            linecolor: '#506784',
-            zerolinecolor: '#C8D4E3',
-            showbackground: true,
-            backgroundcolor: 'rgb(17,17,17)'
-          }
-        },
-        title: { x: 0.05 },
-        xaxis: {
-          ticks: '',
-          gridcolor: '#283442',
-          linecolor: '#506784',
-          automargin: true,
-          zerolinecolor: '#283442',
-          zerolinewidth: 2
-        },
-        yaxis: {
-          ticks: '',
-          gridcolor: '#283442',
-          linecolor: '#506784',
-          automargin: true,
-          zerolinecolor: '#283442',
-          zerolinewidth: 2
-        },
-        ternary: {
-          aaxis: {
-            ticks: '',
-            gridcolor: '#506784',
-            linecolor: '#506784'
-          },
-          baxis: {
-            ticks: '',
-            gridcolor: '#506784',
-            linecolor: '#506784'
-          },
-          caxis: {
-            ticks: '',
-            gridcolor: '#506784',
-            linecolor: '#506784'
-          },
-          bgcolor: 'rgb(17,17,17)'
-        },
-        colorway: ['#636efa', '#EF553B', '#00cc96', '#ab63fa', '#19d3f3', '#e763fa', '#fecb52', '#ffa15a', '#ff6692', '#b6e880'],
-        hovermode: 'closest',
-        colorscale: {
-          diverging: [['0', '#8e0152'], ['0.1', '#c51b7d'], ['0.2', '#de77ae'], ['0.3', '#f1b6da'], ['0.4', '#fde0ef'], ['0.5', '#f7f7f7'], ['0.6', '#e6f5d0'], ['0.7', '#b8e186'], ['0.8', '#7fbc41'], ['0.9', '#4d9221'], ['1', '#276419']],
-          sequential: [['0', '#0508b8'], ['0.0893854748603352', '#1910d8'], ['0.1787709497206704', '#3c19f0'], ['0.2681564245810056', '#6b1cfb'], ['0.3575418994413408', '#981cfd'], ['0.44692737430167595', '#bf1cfd'], ['0.5363128491620112', '#dd2bfd'], ['0.6256983240223464', '#f246fe'], ['0.7150837988826816', '#fc67fd'], ['0.8044692737430168', '#fe88fc'], ['0.8938547486033519', '#fea5fd'], ['0.9832402234636871', '#febefe'], ['1', '#fec3fe']],
-          sequentialminus: [['0', '#0508b8'], ['0.0893854748603352', '#1910d8'], ['0.1787709497206704', '#3c19f0'], ['0.2681564245810056', '#6b1cfb'], ['0.3575418994413408', '#981cfd'], ['0.44692737430167595', '#bf1cfd'], ['0.5363128491620112', '#dd2bfd'], ['0.6256983240223464', '#f246fe'], ['0.7150837988826816', '#fc67fd'], ['0.8044692737430168', '#fe88fc'], ['0.8938547486033519', '#fea5fd'], ['0.9832402234636871', '#febefe'], ['1', '#fec3fe']]
-        },
-        plot_bgcolor: 'rgb(17,17,17)',
-        paper_bgcolor: 'rgb(17,17,17)',
-        shapedefaults: {
-          line: { width: 0 },
-          opacity: 0.4,
-          fillcolor: '#f2f5fa'
-        },
-        sliderdefaults: {
-          bgcolor: '#C8D4E3',
-          tickwidth: 0,
-          bordercolor: 'rgb(17,17,17)',
-          borderwidth: 1
-        },
-        annotationdefaults: {
-          arrowhead: 0,
-          arrowcolor: '#f2f5fa',
-          arrowwidth: 1
-        },
-        updatemenudefaults: {
-          bgcolor: '#506784',
-          borderwidth: 0
-        }
-      },
-      themeRef: 'PLOTLY_DARK'
-    },
-    hovermode: 'closest',
-    colorscale: {
-      diverging: [['0', '#40004b'], ['0.1', '#762a83'], ['0.2', '#9970ab'], ['0.3', '#c2a5cf'], ['0.4', '#e7d4e8'], ['0.5', '#f7f7f7'], ['0.6', '#d9f0d3'], ['0.7', '#a6dba0'], ['0.8', '#5aae61'], ['0.9', '#1b7837'], ['1', '#00441b']],
-      sequential: [['0', '#000004'], ['0.1111111111111111', '#1b0c41'], ['0.2222222222222222', '#4a0c6b'], ['0.3333333333333333', '#781c6d'], ['0.4444444444444444', '#a52c60'], ['0.5555555555555556', '#cf4446'], ['0.6666666666666666', '#ed6925'], ['0.7777777777777778', '#fb9b06'], ['0.8888888888888888', '#f7d13d'], ['1', '#fcffa4']],
-      sequentialminus: [['0', '#0508b8'], ['0.08333333333333333', '#1910d8'], ['0.16666666666666666', '#3c19f0'], ['0.25', '#6b1cfb'], ['0.3333333333333333', '#981cfd'], ['0.4166666666666667', '#bf1cfd'], ['0.5', '#dd2bfd'], ['0.5833333333333334', '#f246fe'], ['0.6666666666666666', '#fc67fd'], ['0.75', '#fe88fc'], ['0.8333333333333334', '#fea5fd'], ['0.9166666666666666', '#febefe'], ['1', '#fec3fe']]
-    },
-    showlegend: false
-  };
-
-  let graphData = {
-    data: [trace1],
-    layout: layout
-  };
-
-  var pngOptions = {format: 'png', width: 1000, height: 500};
-  return { data: graphData, options: pngOptions};
+  return { name: `Games Hour ${hour-1} (${data[hour].length} Games)`, value: lines.join('\n') };
 };
 
-const sendBarEmbed = (interaction, options, tier, component, discordClient) => {
-  Plotly.getImage(options.data, options.options, (err, imageStream) => {
-    if (err) {
-      console.log(err);
-    }
-    let attachment = new AttachmentBuilder(imageStream, { name: 'bar.png' });
-    interaction.editReply({
-      embeds: [generateGraphEmbed('attachment://bar.png', tier, discordClient)],
-      files: [attachment],
-      components: [component],
-      fetchReply: true
-    });
+const sendBarEmbed = (interaction, data, tier, component, discordClient) => {
+
+  let embed = generateBarEmbed(tier, [data], discordClient);
+
+  interaction.editReply({
+    embeds: [embed],
+    components: [component],
+    fetchReply: true
   });
 };
 
-const sendUpdate = (i, options, tier, discordClient) => {
-  Plotly.getImage(options.data, options.options, (err, imageStream) => {
-    if (err) {
-      console.log(err);
-    }
-    let attachment = new AttachmentBuilder(imageStream, { name: 'bar.png' });
-    i.update({
-      embeds: [generateGraphEmbed('attachment://bar.png', tier, discordClient)],
-      files: [attachment]
-    });
+const sendUpdate = (i, data, tier, discordClient) => {
+  
+  let embed = generateBarEmbed(tier, [data], discordClient);
+
+  i.update({
+    embeds: [embed]
   });
 };
 
@@ -345,6 +154,8 @@ const postQuickChart = async (interaction, tier, rankData, eventData, hour, disc
   let maxTimestamp = eventData.startAt + HOUR;
   lastPoint = 0;
 
+  let lastHourWithGame = 0;
+
   rankData.forEach(point => {
     if (point.timestamp > eventData.aggregateAt) {
       return;
@@ -357,11 +168,19 @@ const postQuickChart = async (interaction, tier, rankData, eventData, hour, disc
     if (point.score > lastPoint) {
       let gain = point.score - lastPoint;
       if (gain < 150000 && gain >= 100) {
-        games.push(gain);
+        games.push({ score: gain , timestamp: point.timestamp });
       }
       lastPoint = point.score;
+
+      lastHourWithGame = xData.length;
     }
   });
+
+  if (games.length > 0) {
+    xData.push(games);
+  }
+
+  hour = hour ?? lastHourWithGame;
 
   const barButtons = new ActionRowBuilder()
     .addComponents(
@@ -385,8 +204,8 @@ const postQuickChart = async (interaction, tier, rankData, eventData, hour, disc
     }
   );
 
-  let options = generateGraph(xData, hour);
-  sendBarEmbed(interaction, options, formatTitle(tier, hour, eventData.startAt), 
+  let data = generateGraph(xData, hour, eventData.startAt);
+  sendBarEmbed(interaction, data, formatTitle(tier, hour, eventData.startAt), 
     barButtons, discordClient);
 
   const filter = (i) => {
@@ -425,8 +244,8 @@ const postQuickChart = async (interaction, tier, rankData, eventData, hour, disc
         hour = xData.length - 1;
       }
 
-      let options = generateGraph(xData, hour);
-      sendUpdate(i, options, formatTitle(tier, hour, eventData.startAt), discordClient);
+      let data = generateGraph(xData, hour, eventData.startAt);
+      sendUpdate(i, data, formatTitle(tier, hour, eventData.startAt), discordClient);
     }
   });
 
