@@ -5,7 +5,7 @@
  * @author Potor10
  */
 
-const { DMChannel } = require('discord.js');
+const { DMChannel, Events } = require('discord.js');
 const generateEmbed = require('../methods/generateEmbed'); 
 
 const { PermissionsBitField, ChannelType } = require('discord.js');
@@ -25,7 +25,7 @@ const INTERACTION_CONST = {
 };
 
 module.exports = {
-  name: 'interactionCreate',
+  name: Events.InteractionCreate,
   async execute(interaction, discordClient) {
     if (interaction.isAutocomplete()) {
       const interactionIdx = discordClient.commands
