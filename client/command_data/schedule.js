@@ -10,7 +10,15 @@ module.exports = {
     'name': 'schedule',
     'utilization': '/schedule',
     'description': 'Get the current datamined schedule information.',
-    'ephemeral': false
+    'ephemeral': false,
+    'params': [
+      {
+        'type': 'boolean',
+        'name': 'show-vlive',
+        'required': false,
+        'description': 'whether to show the virtual lives'
+      }
+    ]
   },
 
   'CONSTANTS': {
