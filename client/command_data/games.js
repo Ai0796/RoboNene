@@ -11,20 +11,16 @@ module.exports = {
         'ephemeral': false,
         'subcommands': [
             {
-                'name': 'user',
-                'description': 'Get graph of a user over time',
+                'name': 'tier',
+                'description': 'get the energy usage for a specific tier on the leaderboard',
                 'params': [
                     {
-                        'type': 'user',
-                        'name': 'user',
-                        'required': true,
-                        'description': 'A linked User that has been tracked'
-                    },
-                    {
                         'type': 'integer',
-                        'name': 'event',
+                        'name': 'tier',
                         'required': false,
-                        'description': 'The event to display for',
+                        'description': 'The tier to display for',
+                        'maxValue': 100,
+                        'minValue': 1
                     }
                 ]
             }
