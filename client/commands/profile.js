@@ -55,7 +55,7 @@ async function getImage(assetBundleName, rarityType) {
   
     } else {
   
-      let normalImage = `https://storage.sekai.best/sekai-assets/character/member_cutout/${assetBundleName}_rip/normal.webp`;
+      let normalImage = `https://storage.sekai.best/sekai-jp-assets/character/member/${assetBundleName}_rip/normal.webp`;
       await downloadImage(normalImage, `${folderLocation}/${assetBundleName}_normal.webp`);
       images.normal = sharp(`${folderLocation}/${assetBundleName}_normal.webp`);
     }
@@ -71,7 +71,7 @@ async function getImage(assetBundleName, rarityType) {
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       } else {
   
-        let trainedImage = `https://storage.sekai.best/sekai-assets/character/member_cutout/${assetBundleName}_rip/after_training.webp`;
+        let trainedImage = `https://storage.sekai.best/sekai-jp-assets/character/member/${assetBundleName}_rip/after_training.webp`;
         await downloadImage(trainedImage, `${folderLocation}/${assetBundleName}_after_training.webp`);
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       }
