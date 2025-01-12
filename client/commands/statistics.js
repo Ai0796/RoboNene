@@ -6,13 +6,11 @@
 const COMMAND = require('../command_data/statistics');
 
 const generateSlashCommand = require('../methods/generateSlashCommand');
-const calculateTeam = require('../methods/calculateTeam');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { NENE_COLOR, FOOTER, LOCKED_EVENT_ID } = require('../../constants');
 const getEventData = require('../methods/getEventData');
 
 const HOUR = 3600000;
-const SONGBIAS = 7.00; //Multiplier for Talent to get score
 
 const energyBoost = [
     1,
@@ -46,36 +44,6 @@ const generateEmbed = ({ name, client }) => {
 
     return embed;
 };
-
-function generateEnergyTable(eventPoints)
-{
-    return energyBoost.map(x => x * eventPoints);
-}
-
-function calculateEventPoints(score, multiscore, eventBoost, isCheerful)
-{
-    let scorePoints = isCheerful ? score / 12500 : score / 17500;
-    let multiPoints = Math.min(multiscore, 1300000) / 100000;
-    let cheerfulPoints = isCheerful ? 40 : 0;
-    return (114 + scorePoints + multiPoints + cheerfulPoints) * (1 + eventBoost);
-}
-
-function calculateScore(talent)
-{
-    return talent * SONGBIAS;
-}
-
-function getEnergyPerGame(energyTable, eventPoints)
-{
-    let index = 0;
-    energyTable.forEach((points, i) => {
-        if(Math.abs(eventPoints - points[1]) < Math.abs(eventPoints - energyTable[index][1])){
-            index = i;
-        }
-    });
-
-    return energyTable[index][0];
-}
 
 function getLastHour(sortedList, el) {
     for(let i = 0; i < sortedList.length; i++) {
@@ -114,10 +82,6 @@ async function userStatistics(user, eventId, eventData, discordClient, interacti
         'WHERE (id=@id AND EventID=@eventID)').all({
             id: id,
             eventID: eventId
-        });
-    let userData = discordClient.db.prepare('SELECT * FROM users ' +
-        'WHERE (discord_id=@discord_id)').all({
-            discord_id: user.id,
         });
     if (data.length) {
 
@@ -427,10 +391,11 @@ module.exports = {
         const user = interaction.options.getMember('user');
         const tier = interaction.options.getInteger('tier');
         const eventId = interaction.options.getInteger('event') || event.id;
+        const chapter = interaction.options.getInteger('chapter') ?? null;
 
-        const eventData = getEventData(eventId);
+        let eventData = getEventData(eventId);
 
-        if (event.id === -1) {
+        if (eventData.id === -1) {
             await interaction.editReply({
                 embeds: [
                     generateEmbed({
@@ -441,6 +406,17 @@ module.exports = {
                 ]
             });
             return;
+        }
+
+        if (chapter !== null && event.eventType === 'world_bloom') {
+            let world_blooms = discordClient.getAllWorldLinkChapters(event.id);
+
+            let world_link = world_blooms.find(chap => chap.chapterNo === chapter);
+            world_link.startAt = world_link.chapterStartAt;
+            world_link.aggregateAt = world_link.chapterEndAt;
+            world_link.id = parseInt(`${event.id}${world_link.gameCharacterId}`);
+            world_link.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
+            eventData = world_link;
         }
 
         if (user) {
@@ -462,5 +438,19 @@ module.exports = {
                 console.log(err);
             }
         }
+    },
+
+    async autocomplete(interaction, discordClient) {
+        
+        let world_blooms = discordClient.getAllWorldLinkChapters();
+
+        let options = world_blooms.map((chapter, i) => {
+            return {
+                name: chapter.character,
+                value: chapter.chapterNo
+            };
+        });
+
+        await interaction.respond(options);
     }
 };

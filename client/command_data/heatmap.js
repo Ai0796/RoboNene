@@ -64,6 +64,13 @@ module.exports = {
             'name': 'bypoints',
             'required': false,
             'description': 'Show the points gained instead of games played'
+          },
+          {
+            'type': 'integer',
+            'name': 'chapter',
+            'required': false,
+            'description': 'The chapter to display for (World Link Only)',
+            'autocomplete': true
           }
         ]
       },

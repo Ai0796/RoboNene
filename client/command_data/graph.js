@@ -33,6 +33,13 @@ module.exports = {
             'name': 'event',
             'required': false,
             'description': 'The event to display for, multiple events can be entered in the format {id}, {id}, etc.',
+          },
+          {
+            'type': 'string',
+            'name': 'chapter',
+            'required': false,
+            'description': 'The chapter to display for (World Link Only)',
+            'autocomplete': true
           }
         ]
       },

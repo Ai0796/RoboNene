@@ -13,6 +13,17 @@ const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 const getEventData = require('../methods/getEventData');
 
+const colors = [
+  '#FF77217F',
+  '#0077DD7F',
+  '#00BBDC7F',
+  '#FF679A7F',
+  '#FFCDAC7F',
+  '#99CDFF7F',
+  '#FFA9CC7F',
+  '#9AEEDE7F',
+];
+
 /**
  * Create a graph embed to be sent to the discord interaction
  * @param {string} graphUrl url of the graph we are trying to embed
@@ -39,7 +50,7 @@ const generateGraphEmbed = (graphUrl, tier, discordClient) => {
  * @returns 
  */
 function ensureASCII(str) {
-  return str.replace(/[^a-z0-9&]/gi, ' ');
+  return str.replace(/[^ -~]/gi, ' ');
 }
 
 /**
@@ -77,12 +88,34 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
     });
   });
 
+  let totalEvents = rankDatas.length;
+
+  var usableColors;
+
+  if (rankDatas.length >= 4) {
+    usableColors = colors;
+  } else {
+    usableColors = colors.slice(2, rankDatas.length);
+  }
+
+  let colorLen = usableColors.length;
+
   let graphData = rankDatas.map((rankData, i) => {
     return {
       'type': 'line',
-      'label': `${events[i].id}: ${events[i].name} ${tier}`,
-      'fill': false,
+      'borderWidth': 2,
+      'label': ensureASCII(`${events[i].id}: ${events[i].name} ${tier}`),
+      'fill': true,
+      'spanGaps': false,
       'pointRadius': 0,
+      // 'borderDash': [
+      //   2,
+      //   totalEvents
+      // ],
+      // 'borderDashOffset': i,
+      'borderColor': (i > colorLen - 1) ? usableColors[i % colorLen] : usableColors[i],
+      'backgroundColor': (i > colorLen - 1) ? usableColors[i % colorLen] : usableColors[i],
+      'order': totalEvents - i,
       'data': rankData
     };
   });
@@ -136,7 +169,7 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
         try {
           console.log(JSON.stringify(JSON.parse(json)));
           await interaction.editReply({
-            embeds: [generateGraphEmbed(JSON.parse(json).url, tier, discordClient)]
+            embeds: [generateGraphEmbed(JSON.parse(json).url + '?width=1000&height=600', tier, discordClient)]
           });
         } catch (err) {
           // Error parsing JSON: ${err}`
@@ -144,7 +177,7 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
         }
       } else {
         // Error retrieving via HTTPS. Status: ${res.statusCode}
-        console.log(`Error retrieving via HTTPS ${res.statusCode}`);
+        console.log(`Error retrieving via HTTPS ${res.statusCode} ${json}`);
       }
     });
   }).on('error', () => { });
@@ -235,10 +268,41 @@ module.exports = {
     const user = interaction.options.getMember('user');
     let events = interaction.options.getString('event') || [event];
     const graphTier = interaction.options.getBoolean('by_tier') || false;
+    let chapter = interaction.options.getString('chapter') ?? null;
+
+    var splitEvents;
 
     if (typeof (events) === 'string') {
-      events = events.split(',').map(x => getEventData(parseInt(x)));
+      splitEvents = events.split(',').map(x => getEventData(parseInt(x)));
+    } else {
+      splitEvents = events;
     }
+
+    if (typeof (chapter) === 'string') {
+      chapter = chapter.split(',').map(x => parseInt(x));
+    }
+
+    events = [];
+    
+    splitEvents.forEach(event => {
+      if (chapter !== null && event.eventType === 'world_bloom') {
+        let world_blooms = discordClient.getAllWorldLinkChapters(event.id);
+
+        chapter.forEach(chapterId => {
+          let world_link = world_blooms.find(x => x.chapterNo === chapterId);
+          if (!world_link) {
+            return;
+          }
+          world_link.startAt = world_link.chapterStartAt;
+          world_link.aggregateAt = world_link.chapterEndAt;
+          world_link.id = parseInt(`${event.id}${world_link.gameCharacterId}`);
+          world_link.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
+          events.push(world_link);
+        });
+      } else {
+        events.push(event);
+      }
+    });
 
     if (events.filter(x => x.id > 0).length === 0) {
       await interaction.editReply({
@@ -298,5 +362,24 @@ module.exports = {
         // Error parsing JSON: ${err}`
       }
     }
+  },
+
+  async autocomplete(interaction, discordClient) {
+    
+    let world_blooms = discordClient.getAllWorldLinkChapters();
+
+    let options = world_blooms.map((chapter, i) => {
+      return {
+        name: chapter.character,
+        value: `${chapter.chapterNo}`,
+      };
+    });
+
+    options.push({
+      name: 'All Chapters',
+      value: [...new Set(options.map(x => x.value))].join(','),
+    });
+
+    await interaction.respond(options);
   }
 };
