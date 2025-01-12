@@ -59,6 +59,7 @@ module.exports = {
     'RIGHT': '➡️',
     'MOBILE': '📲',
     'OFFSET': '🔃',
-    'ALT': '🔀'
+    'ALT': '🔀',
+    'LINK': '🌸',
   }
 };
