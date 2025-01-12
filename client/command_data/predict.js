@@ -47,6 +47,12 @@ module.exports = {
         'required': true,
         'description': 'The current points the cutoff is at',
         'minValue': 0
+      },
+      {
+        'type': 'boolean',
+        'name': 'chapter',
+        'required': false,
+        'description': 'Get prediction for chapter (World Link only)'
       }
     ]
   },

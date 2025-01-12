@@ -26,6 +26,7 @@ module.exports = {
         );
         let tier = interaction.options.getInteger('tier');
         let cutoff = interaction.options.getInteger('currentpoints');
+        let chapter = interaction.options.getBoolean('chapter') ?? false;
 
         //weight consists of 3 lists, percentage, std_dev, and mean
         const weight = weights[tier.toString()];
@@ -46,6 +47,11 @@ module.exports = {
                 ]
             });
             return;
+        }
+
+        if (event.eventType === 'world_bloom' && chapter) {
+            event = await discordClient.getWorldLink();
+            event.startAt = event.chapterStartAt;
         }
 
         let currentTime = new Date().getTime();
