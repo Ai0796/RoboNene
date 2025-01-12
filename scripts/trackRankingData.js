@@ -101,11 +101,11 @@ const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) =
     }
 
     // Request deletion of the channel from the database
-    console.log(`Requesting deletion of ${target.channel_id}`);
-    discordClient.db.prepare('DELETE FROM tracking WHERE guild_id=@guildId AND channel_id=@channelId').run({
-      guildId: target.guild_id,
-      channelId: target.channel_id
-    });
+    // console.log(`Requesting deletion of ${target.channel_id}`);
+    // discordClient.db.prepare('DELETE FROM tracking WHERE guild_id=@guildId AND channel_id=@channelId').run({
+    //   guildId: target.guild_id,
+    //   channelId: target.channel_id
+    // });
   };
 
   const removeDuplicates = async (arr) => {
@@ -226,6 +226,39 @@ const requestRanking = async (event, discordClient) => {
       }
     });
 
+    if (response.userWorldBloomChapterRankings !== undefined) {
+      response.userWorldBloomChapterRankings.forEach((chapter) => {
+        let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
+        chapter.rankings.forEach((ranking) => {
+          let score = ranking['score'];
+          let rank = ranking['rank'];
+          let id = ranking['userId'];
+          let games = 1;
+          if (id in gameCache) {
+            if (score >= gameCache[id].score + 100) {
+              gameCache[id].games++;
+              gameCache[id].score = score;
+            }
+          } else {
+            gameCache[id] = {'score': score, 'games': 1};
+          }
+
+          games = gameCache[id].games;
+
+          discordClient.cutoffdb.prepare('INSERT INTO cutoffs ' +
+            '(EventID, Tier, Timestamp, Score, ID, GameNum) ' +
+            'VALUES(@eventID, @tier, @timestamp, @score, @id, @gameNum)').run({
+              score: score,
+              eventID: chapterId,
+              tier: rank,
+              timestamp: timestamp,
+              id: id,
+              gameNum: games
+            });
+        });
+      });
+    }
+
     await writeGames(gameCache);
     sendTrackingEmbed(response.rankings, event, timestamp, discordClient);
   };
@@ -240,6 +273,27 @@ const requestRanking = async (event, discordClient) => {
         message: err.toString()
       });
     });
+  }
+};
+
+const getWorldLink = (eventId) => {
+  let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+  worldLink = worldLink.filter((x) => x.eventId === eventId);
+
+  let idx = -1;
+  let currentTime = Date.now();
+
+  worldLink.forEach((x, i) => {
+    if (x.chapterEndAt >= currentTime && x.chapterStartAt <= currentTime) {
+      idx = i;
+    }
+  });
+
+  if (idx == -1) {
+    return -1;
+  }
+  else {
+    return worldLink[idx];
   }
 };
 
