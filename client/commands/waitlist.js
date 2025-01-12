@@ -13,6 +13,8 @@ const fs = require('fs');
 
 let DATA = loadData();
 
+let RATE_LIMIT = {}; // Rate limit is short, no need to store in file
+
 /**
  * @param Data
  * @param Data.users Gets list of users in queue
@@ -35,6 +37,16 @@ function removeUser(data, user) {
     }
 
     return data;
+}
+
+function checkRateLimit(channel_id) {
+    const now = Date.now();
+    if (RATE_LIMIT[channel_id] && now - RATE_LIMIT[channel_id] < 5000) {
+        return true;
+    } else {
+        RATE_LIMIT[channel_id] = now;
+        return false;
+    }
 }
 
 async function waitlistEmbed(users, client) {
@@ -70,7 +82,7 @@ async function waitlistEmbed(users, client) {
     return { embeds: [embed], components: [actionRow] };
 }
 
-async function onInteract(interaction, discordClient, data) {
+async function onInteract(interaction, discordClient, data, channel_id) {
     const { customId } = interaction;
     const user = interaction.user.id.toString();
 
@@ -83,6 +95,10 @@ async function onInteract(interaction, discordClient, data) {
         data.users = data.users.filter(u => u !== user);
         await interaction.update(await waitlistEmbed(data.users, discordClient.client));
     } else if (customId === 'ping') {
+        if (checkRateLimit(channel_id)) {
+            await interaction.reply({ content: 'Rate limited, please wait a few seconds before trying again', ephemeral: true });
+            return;
+        }
         if (data.users.length > 0) {
             const nextUser = data.users[0];
             confirmJoin(interaction, nextUser, discordClient);
@@ -95,7 +111,7 @@ async function onInteract(interaction, discordClient, data) {
 }
 
 async function confirmJoin(interaction, nextUser, discordClient) {
-    const message = `<@${nextUser}> you are being added to the room, please do not resist\n\n(NOTE: this will remove you from all other waitlists)!`;
+    const message = `<@${nextUser}> you are being added to the room, please do not resist\n\n(NOTE: this will remove you from all other waitlists)!\n\n(<@${interaction.user.id}> requested this ping)`;
 
     const actionRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -171,7 +187,7 @@ async function createWaitlist(interaction, discordClient) {
     });
 
     collector.on('collect', async (e) => {
-        await onInteract(e, discordClient, DATA[channel_id]);
+        await onInteract(e, discordClient, DATA[channel_id], channel_id);
         saveData(DATA);
     });
 
@@ -206,7 +222,12 @@ module.exports = {
             let channel_id = interaction.channel.id.toString();
             DATA[channel_id].users = [];
             createWaitlist(interaction, discordClient);
-        }        
+        } else if (interaction.options.getSubcommand() === 'leave') {
+            let user_id = interaction.user.id.toString();
+            DATA = removeUser(DATA, user_id);
+            saveData(DATA);
+            await interaction.editReply({ content: 'You have been removed from all waitlists' });
+        }
     }
 };
 

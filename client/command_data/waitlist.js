@@ -16,7 +16,7 @@ module.exports = {
             },
             {
                 'name': 'remove',
-                'description': 'Get information on a specific tier on the leaderboard.',
+                'description': 'Removes a user from the rooms waitlist',
                 'params': [
                     {
                         'type': 'user',
@@ -28,7 +28,11 @@ module.exports = {
             },
             {
                 'name': 'clear',
-                'description': 'Clears the waitlist queue'
+                'description': 'Clears the waitlist in the current channel'
+            },
+            {
+                'name': 'leave',
+                'description': 'Removes you from all waitlists'
             }
         ]
     },
