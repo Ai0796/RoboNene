@@ -81,7 +81,7 @@ module.exports = {
       'message': 'Your account is now unlinked.'
     },
 
-    'INTERACTION_TIME': 30000,
+    'INTERACTION_TIME': 300000,
     'UNLINK_EMOJI': '❌'
   }
 };
