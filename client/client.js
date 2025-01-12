@@ -64,7 +64,9 @@ class DiscordClient {
       ], 
       partials: [
         'CHANNEL'
-      ] });
+      ], 
+      shards: 'auto'
+    });
   }
 
   loadMessageHandler() {
@@ -498,6 +500,51 @@ class DiscordClient {
       banner: '',
       name: ''
     };
+  }
+
+  getWorldLink() {
+    let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+    let eventId = this.getCurrentEvent().id;
+    worldLink = worldLink.filter((x) => x.eventId === eventId);
+
+    let idx = -1;
+    let currentTime = Date.now();
+
+    worldLink.forEach((x, i) => {
+      if (x.chapterEndAt >= currentTime && x.chapterStartAt <= currentTime) {
+        idx = i;
+      }
+    });
+
+    if (idx == -1) {
+      return -1;
+    }
+    else {
+      return worldLink[idx];
+    }
+  }
+
+  getAllWorldLinkChapters(eventId = null) {
+    let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+    let currentTime = Date.now();
+    if (eventId === null) {
+      worldLink = worldLink.filter((x) => x.chapterStartAt <= currentTime);
+    } else {
+      worldLink = worldLink.filter((x) => x.eventId === eventId);
+    }
+    
+
+    worldLink.forEach((x) => {
+      x.character = `${this.getCharacterName(x.gameCharacterId)} (Event ${x.eventId})`;
+    });
+
+    return worldLink;
+  }
+
+  getCharacterName(characterId) {
+    const gameCharacters = JSON.parse(fs.readFileSync('./sekai_master/gameCharacters.json'));
+    const charInfo = gameCharacters[characterId - 1];
+    return `${charInfo.givenName} ${charInfo.firstName}`.trim();
   }
 
   /**
