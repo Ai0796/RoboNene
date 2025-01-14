@@ -28,11 +28,37 @@ module.exports = {
             },
             {
                 'name': 'clear',
-                'description': 'Clears the waitlist in the current channel'
+                'description': 'Clears the waitlist in the current channel (removes song)'
             },
             {
                 'name': 'leave',
                 'description': 'Removes you from all waitlists'
+            },
+            {
+                'name': 'song',
+                'description': 'Sets the waitlist song',
+                'params': [
+                    {
+                        'type': 'string',
+                        'name': 'song',
+                        'required': true,
+                        'description': 'The song to set',
+                        'autocomplete': true
+                    }
+                ]
+            },
+            {
+                'name': 'leaving',
+                'description': 'Sets when you expect to leave the waitlist',
+                'params': [
+                    {
+                        'type': 'integer',
+                        'minValue': 0,
+                        'name': 'minutes',
+                        'required': true,
+                        'description': 'The time you expect to leave the waitlist in minutes'
+                    }
+                ]
             }
         ]
     },

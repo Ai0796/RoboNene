@@ -10,10 +10,19 @@ const generateSlashCommand = require('../methods/generateSlashCommand');
 const { EmbedBuilder, ButtonBuilder, ActionRowBuilder, ComponentType } = require('discord.js');
 const { NENE_COLOR, FOOTER } = require('../../constants');
 const fs = require('fs');
+const music = require('../classes/Musics');
 
 let DATA = loadData();
+const musicData = new music();
 
 let RATE_LIMIT = {}; // Rate limit is short, no need to store in file
+
+const BASEDATA = {
+    'users': [],
+    'message_id': null,
+    'song': null, // song name
+    'leavers': {} // { user_id: timestamp }
+};
 
 /**
  * @param Data
@@ -39,6 +48,29 @@ function removeUser(data, user) {
     return data;
 }
 
+function setSong(data, server_id, song) {
+    if (!data[server_id]) {
+        data[server_id] = BASEDATA;
+    }
+    data[server_id].song = song;
+    return data;
+}
+
+function addLeaving(data, server_id, user_id, minutes) {
+    if (!data[server_id]) {
+        data[server_id] = BASEDATA;
+    }
+
+    if (!data[server_id].leavers) {
+        data[server_id].leavers = {};
+    }
+
+    data[server_id].leavers[user_id] = Math.floor(Date.now() / 1000) + (minutes * 60);
+    data[server_id].leavers = Object.fromEntries(Object.entries(data[server_id].leavers).sort(([, a], [, b]) => a - b));
+
+    return data;
+}
+
 function checkRateLimit(channel_id) {
     const now = Date.now();
     if (RATE_LIMIT[channel_id] && now - RATE_LIMIT[channel_id] < 5000) {
@@ -49,14 +81,35 @@ function checkRateLimit(channel_id) {
     }
 }
 
-async function waitlistEmbed(users, client) {
+async function waitlistEmbed(data, client) {
+
+    const users = data.users;
+    const song = data.song;
+    const leavers = data.leavers;
+
+    for (const [key, value] of Object.entries(leavers)) {
+        if (value < Date.now()/1000) {
+            delete leavers[key];
+        }
+    }
+
     const embed = new EmbedBuilder()
         .setColor(NENE_COLOR)
-        .setTitle('Waitlist Queue')
-        .addFields({
-            name: 'Users',
-            value: users.length > 0 ? users.map(u => `<@${u}>`).join('\n') : 'No users in queue'
-        })
+        .setTitle('Waitlist Queue');
+
+    if (song) {
+        embed.setDescription(`Song: ${song}`);
+    }
+    if (Object.keys(leavers).length > 0) {
+        embed.addFields({
+            name: 'Leaving Soon',
+            value: Object.keys(leavers).map(u => `<@${u}> <t:${leavers[u]}:R>`).join('\n')
+        });
+    }
+    embed.addFields({
+        name: 'Users',
+        value: users.length > 0 ? users.map(u => `<@${u}>`).join('\n') : 'No users in queue'
+    })
         .setThumbnail(client.user.displayAvatarURL())
         .setTimestamp()
         .setFooter({ text: FOOTER, iconURL: client.user.displayAvatarURL() });
@@ -90,10 +143,10 @@ async function onInteract(interaction, discordClient, data, channel_id) {
         if (!data.users.includes(user)) {
             data.users.push(user);
         }
-        await interaction.update(await waitlistEmbed(data.users, discordClient.client));
+        await interaction.update(await waitlistEmbed(data, discordClient.client));
     } else if (customId === 'leave') {
         data.users = data.users.filter(u => u !== user);
-        await interaction.update(await waitlistEmbed(data.users, discordClient.client));
+        await interaction.update(await waitlistEmbed(data, discordClient.client));
     } else if (customId === 'ping') {
         if (checkRateLimit(channel_id)) {
             await interaction.reply({ content: 'Rate limited, please wait a few seconds before trying again', ephemeral: true });
@@ -159,19 +212,32 @@ async function confirmJoin(interaction, nextUser, discordClient) {
 
 async function createWaitlist(interaction, discordClient) {
     const channel_id = interaction.channel.id.toString();
+    const channel_name = interaction.channel.name;
 
     if (!DATA) {
         DATA = loadData();
     }
 
     if (!DATA[channel_id]) {
-        DATA[channel_id] = {
-            'users': [],
-            'message_id': null
-        };
+        DATA[channel_id] = BASEDATA;
     }
 
-    const embed = await waitlistEmbed(DATA[channel_id].users, discordClient.client);
+    for (const [key, value] of Object.entries(BASEDATA)) {
+        if (!DATA[channel_id][key]) {
+            DATA[channel_id][key] = value;
+        }
+    }
+
+    var embed;
+    if (channel_name.includes('-xxxxx')) {
+        DATA[channel_id] = BASEDATA;
+
+        embed = await waitlistEmbed(DATA[channel_id], discordClient.client);
+        embed['content'] = 'Due to lack of room code, the waitlist has been cleared';
+    } else {
+        embed = await waitlistEmbed(DATA[channel_id], discordClient.client);
+    }
+
 
     const message = await interaction.editReply(embed);
 
@@ -221,13 +287,60 @@ module.exports = {
         } else if (interaction.options.getSubcommand() === 'clear') {
             let channel_id = interaction.channel.id.toString();
             DATA[channel_id].users = [];
+            DATA[channel_id].song = null;
+            DATA[channel_id].leavers = {};
             createWaitlist(interaction, discordClient);
         } else if (interaction.options.getSubcommand() === 'leave') {
             let user_id = interaction.user.id.toString();
             DATA = removeUser(DATA, user_id);
             saveData(DATA);
             await interaction.editReply({ content: 'You have been removed from all waitlists' });
+        } else if (interaction.options.getSubcommand() === 'song') {
+            let song = interaction.options.getString('song');
+            let channel_id = interaction.channel.id.toString();
+
+            if (!musicData.keys.has(song)) {
+                await interaction.editReply({ content: `Invalid song ${song}` });
+                return;
+            }
+
+            DATA = setSong(DATA, channel_id, song);
+
+            createWaitlist(interaction, discordClient);
+
+        } else if (interaction.options.getSubcommand() === 'leaving') {
+            let minutes = interaction.options.getInteger('minutes');
+
+            let channel_id = interaction.channel.id.toString();
+            let user_id = interaction.user.id.toString();
+            addLeaving(DATA, channel_id, user_id, minutes);
+
+            createWaitlist(interaction, discordClient);
         }
+    },
+
+    async autocomplete(interaction, discordClient) {
+        let focus = interaction.options.getFocused();
+        console.log(focus);
+        if (focus == '') {
+            await interaction.respond([
+                { name: 'Hitorinbo Envy', value: 'Hitorinbo Envy' },
+                { name: 'Lost and Found', value: 'Lost and Found' },
+                { name: 'Melt', value: 'Melt' },
+                { name: 'Viva Happy', value: 'Viva Happy' },
+            ]);
+
+            return;
+        }
+
+        let choices = Object.keys(musicData.musics).filter((key) => {
+            return musicData.musics[key].toLowerCase().includes(focus.toLowerCase());
+        });
+
+        choices = choices.slice(0, 10);
+
+        await interaction.respond(choices.map((key) => {
+            return { name: musicData.musics[key], value: musicData.musics[key] };
+        }));
     }
 };
-
