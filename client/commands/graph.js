@@ -95,7 +95,7 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
   if (rankDatas.length >= 4) {
     usableColors = colors;
   } else {
-    usableColors = colors.slice(2, rankDatas.length);
+    usableColors = colors.slice(2, rankDatas.length + 2);
   }
 
   let colorLen = usableColors.length;
