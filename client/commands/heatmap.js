@@ -1208,7 +1208,7 @@ module.exports = {
     let offset = interaction.options.getInteger('offset');
     let annotategames = interaction.options.getBoolean('annotategames') ?? true;
     let bypoints = interaction.options.getBoolean('bypoints') || false;
-    const chapter = interaction.options.getInteger('chapter') ?? null;
+    const chapterId = interaction.options.getInteger('chapter') ?? null;
 
     const pallete = palettes[palleteIndex];
 
@@ -1230,15 +1230,16 @@ module.exports = {
       return;
     }
 
-    if (chapter !== null && eventData.eventType === 'world_bloom') {
-      let world_blooms = discordClient.getAllWorldLinkChapters(eventData.id);
+    if (chapterId !== null) {
+      let eventId = Math.floor(chapterId / 100);
+      eventData = getEventData(eventId);
+      let world_blooms = discordClient.getAllWorldLinkChapters();
 
-      let world_link = world_blooms.find(chapter => chapter.chapterNo === chapter);
-      world_link.startAt = world_link.chapterStartAt;
-      world_link.aggregateAt = world_link.chapterEndAt;
-      world_link.id = parseInt(`${eventData.id}${world_link.gameCharacterId}`);
-      world_link.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
-      eventData = world_link;
+      let world_link = world_blooms.find(chapter => chapter.id == chapterId);
+      eventData.startAt = world_link.chapterStartAt;
+      eventData.aggregateAt = world_link.chapterEndAt;
+      eventData.id = parseInt(`${eventData.id}${world_link.gameCharacterId}`);
+      eventData.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
       eventName = world_link.name;
     }
 
@@ -1309,7 +1310,7 @@ module.exports = {
     let options = world_blooms.map((chapter, i) => {
       return {
         name: chapter.character,
-        value: chapter.chapterNo,
+        value: chapter.id,
       };
     });
 

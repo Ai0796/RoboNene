@@ -408,15 +408,16 @@ module.exports = {
             return;
         }
 
-        if (chapter !== null && event.eventType === 'world_bloom') {
-            let world_blooms = discordClient.getAllWorldLinkChapters(event.id);
+        if (chapter !== null) {
+            let eventId = Math.floor(chapter / 100);
+            eventData = getEventData(eventId);
+            let world_blooms = discordClient.getAllWorldLinkChapters();
 
-            let world_link = world_blooms.find(chap => chap.chapterNo === chapter);
-            world_link.startAt = world_link.chapterStartAt;
-            world_link.aggregateAt = world_link.chapterEndAt;
-            world_link.id = parseInt(`${event.id}${world_link.gameCharacterId}`);
-            world_link.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
-            eventData = world_link;
+            let world_link = world_blooms.find(chapter => chapter.id == chapter);
+            eventData.startAt = world_link.chapterStartAt;
+            eventData.aggregateAt = world_link.chapterEndAt;
+            eventData.id = parseInt(`${eventData.id}${world_link.gameCharacterId}`);
+            eventData.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
         }
 
         if (user) {
@@ -441,13 +442,13 @@ module.exports = {
     },
 
     async autocomplete(interaction, discordClient) {
-        
+
         let world_blooms = discordClient.getAllWorldLinkChapters();
 
         let options = world_blooms.map((chapter, i) => {
             return {
                 name: chapter.character,
-                value: chapter.chapterNo
+                value: chapter.id,
             };
         });
 
