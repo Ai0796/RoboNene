@@ -323,10 +323,10 @@ async function sendTierRequest(eventData, tier, interaction, hour, discordClient
       });
     if(data.length > 0) {
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-      let title = `${eventData.name} T${tier} ${response['rankings'][0]['name']} Heatmap`;
+      let title = `${eventData.name} T${tier} ${response['rankings'][tier-1]['name']}boo Heatmap`;
 
       rankData.unshift({ timestamp: eventData.startAt, score: 0 });
-      rankData.push({ timestamp: Date.now(), score: response['rankings'][0]['score'] });
+      rankData.push({ timestamp: Date.now(), score: response['rankings'][tier-1]['score'] });
       rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
       
       postQuickChart(interaction, title, rankData, eventData, hour, discordClient);
