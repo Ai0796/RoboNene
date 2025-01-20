@@ -391,7 +391,7 @@ module.exports = {
         const user = interaction.options.getMember('user');
         const tier = interaction.options.getInteger('tier');
         const eventId = interaction.options.getInteger('event') || event.id;
-        const chapter = interaction.options.getInteger('chapter') ?? null;
+        const chapterId = interaction.options.getInteger('chapter') ?? null;
 
         let eventData = getEventData(eventId);
 
@@ -408,12 +408,12 @@ module.exports = {
             return;
         }
 
-        if (chapter !== null) {
-            let eventId = Math.floor(chapter / 100);
+        if (chapterId !== null) {
+            let eventId = Math.floor(chapterId / 100);
             eventData = getEventData(eventId);
             let world_blooms = discordClient.getAllWorldLinkChapters();
 
-            let world_link = world_blooms.find(chapter => chapter.id == chapter);
+            let world_link = world_blooms.find(chapter => chapter.id == chapterId);
             eventData.startAt = world_link.chapterStartAt;
             eventData.aggregateAt = world_link.chapterEndAt;
             eventData.id = parseInt(`${eventData.id}${world_link.gameCharacterId}`);
