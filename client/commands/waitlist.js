@@ -50,7 +50,7 @@ function removeUser(data, user) {
 
 function setSong(data, server_id, song) {
     if (!data[server_id]) {
-        data[server_id] = BASEDATA;
+        data[server_id] = JSON.parse(JSON.stringify(BASEDATA));
     }
     data[server_id].song = song;
     return data;
@@ -58,7 +58,7 @@ function setSong(data, server_id, song) {
 
 function addLeaving(data, server_id, user_id, minutes) {
     if (!data[server_id]) {
-        data[server_id] = BASEDATA;
+        data[server_id] = JSON.parse(JSON.stringify(BASEDATA));
     }
 
     if (!data[server_id].leavers) {
@@ -107,7 +107,7 @@ async function waitlistEmbed(data, client) {
         });
     }
     embed.addFields({
-        name: 'Users',
+        name: 'Waitlist Users',
         value: users.length > 0 ? users.map(u => `<@${u}>`).join('\n') : 'No users in queue'
     })
         .setThumbnail(client.user.displayAvatarURL())
@@ -144,6 +144,8 @@ async function onInteract(interaction, discordClient, data, channel_id) {
             data.users.push(user);
         }
         await interaction.update(await waitlistEmbed(data, discordClient.client));
+
+        await interaction.followUp({ content: `<@${user}> has joined the the waitlist`, allowedMentions: {parse: []} });
     } else if (customId === 'leave') {
         data.users = data.users.filter(u => u !== user);
         await interaction.update(await waitlistEmbed(data, discordClient.client));
@@ -200,7 +202,7 @@ async function confirmJoin(interaction, nextUser, discordClient) {
             return;
         }
         try {
-            channel.send('You did not confirm in time, you have been removed from the waitlist, please use /waitlist again to update');
+            channel.send({ content: `<@${nextUser}> did not confirm in time, <@${nextUser}> has been removed from the waitlist, please use /waitlist again to update`, allowedMentions: {parse: []}});
         } catch (e) {
             console.error(e);
         }
@@ -219,7 +221,7 @@ async function createWaitlist(interaction, discordClient) {
     }
 
     if (!DATA[channel_id]) {
-        DATA[channel_id] = BASEDATA;
+        DATA[channel_id] = JSON.parse(JSON.stringify(BASEDATA));
     }
 
     for (const [key, value] of Object.entries(BASEDATA)) {
@@ -230,7 +232,7 @@ async function createWaitlist(interaction, discordClient) {
 
     var embed;
     if (channel_name.includes('-xxxxx')) {
-        DATA[channel_id] = BASEDATA;
+        DATA[channel_id] = JSON.parse(JSON.stringify(BASEDATA));
 
         embed = await waitlistEmbed(DATA[channel_id], discordClient.client);
         embed['content'] = 'Due to lack of room code, the waitlist has been cleared';
@@ -284,22 +286,27 @@ module.exports = {
 
             DATA[channel_id].users = DATA[channel_id].users.filter(u => u !== user_id);
             createWaitlist(interaction, discordClient);
+
         } else if (interaction.options.getSubcommand() === 'clear') {
             let channel_id = interaction.channel.id.toString();
             DATA[channel_id].users = [];
             DATA[channel_id].song = null;
             DATA[channel_id].leavers = {};
             createWaitlist(interaction, discordClient);
+
         } else if (interaction.options.getSubcommand() === 'leave') {
+
             let user_id = interaction.user.id.toString();
             DATA = removeUser(DATA, user_id);
             saveData(DATA);
             await interaction.editReply({ content: 'You have been removed from all waitlists' });
+
         } else if (interaction.options.getSubcommand() === 'song') {
+
             let song = interaction.options.getString('song');
             let channel_id = interaction.channel.id.toString();
 
-            if (!musicData.keys.has(song)) {
+            if (!Object.values(musicData.musics).includes(song) && song !== 'Omakase (Random)') {
                 await interaction.editReply({ content: `Invalid song ${song}` });
                 return;
             }
@@ -325,9 +332,11 @@ module.exports = {
         if (focus == '') {
             await interaction.respond([
                 { name: 'Hitorinbo Envy', value: 'Hitorinbo Envy' },
-                { name: 'Lost and Found', value: 'Lost and Found' },
-                { name: 'Melt', value: 'Melt' },
+                { name: 'Lost and Found (Sage is now out)', value: 'Lost and Found' },
+                { name: 'Melt (Sage exists)', value: 'Melt' },
                 { name: 'Viva Happy', value: 'Viva Happy' },
+                { name: 'Sage', value: 'Sage' },
+                { name: 'Omakase (Random)', value: 'Omakase (Random)' },
             ]);
 
             return;
