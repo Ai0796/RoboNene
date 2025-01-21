@@ -35,8 +35,8 @@ loadGameData(0, async () => {
   // Begin the scripts
   trackGameData(client);
   trackRankingData(client);
-  trackCutoffData(client);
-  trackUserCutoffs(client);
+  // trackCutoffData(client);
+  // trackUserCutoffs(client);
   trackTierData(client);
   trackTwitterData(client);
   updateActivity(client);

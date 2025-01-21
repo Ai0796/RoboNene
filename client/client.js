@@ -64,7 +64,9 @@ class DiscordClient {
       ], 
       partials: [
         'CHANNEL'
-      ] });
+      ], 
+      shards: 'auto'
+    });
   }
 
   loadMessageHandler() {
@@ -98,7 +100,6 @@ class DiscordClient {
         this.logger.info(`Magic Ghostnene command called by ${message.author.username}`);
         event.executeMessage(message, this);
       }
-1
       if (!message.content.startsWith(this.prefix)) return;
       let command = message.content.slice(this.prefix.length).split(/ +/);
       this.logger.info(`Command ${command[0]} called by ${message.author.username}`);
@@ -134,6 +135,10 @@ class DiscordClient {
 
     for (const file of commandFiles) {
       const command = require(`${dir}/${file}`);
+      if (command.data === null || command.data === undefined) {
+        console.log(`Command ${file} does not have a data object, Skipping Load.`);
+        continue;
+      }
       console.log(`Loaded command ${command.data.name} from ${file}`);
       this.commands.push(command);
     }
@@ -365,7 +370,6 @@ class DiscordClient {
       };
     }
 
-    console.log(this.rateLimit);
     if (this.rateLimit[userId].usage + 1 > RATE_LIMIT) {
       return false;
     } 
@@ -421,6 +425,7 @@ class DiscordClient {
    */
   async runSekaiRequests(rate=10) {
     const runRequest = async (apiClient, request) => {
+      // Profile disabled as of now
       if (request.type === 'profile') {
         const response = await apiClient.userProfile(request.params.userId);
 
@@ -429,10 +434,13 @@ class DiscordClient {
           request.callback(response);
         }
       } else if (request.type === 'ranking') {
-        const queryParams = {...request.params};
-        delete queryParams.eventId;
 
-        const response = await apiClient.eventRanking(request.params.eventId, queryParams);
+        let eventId = request.params.eventId || this.getCurrentEvent().id;
+        if (eventId === -1) {
+          request.error('No event is currently running');
+          return;
+        }
+        const response = await apiClient.eventRankingT100(eventId);
 
         // If our response is valid we run the callback
         if (response) {
@@ -492,6 +500,51 @@ class DiscordClient {
       banner: '',
       name: ''
     };
+  }
+
+  getWorldLink() {
+    let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+    let eventId = this.getCurrentEvent().id;
+    worldLink = worldLink.filter((x) => x.eventId === eventId);
+
+    let idx = -1;
+    let currentTime = Date.now();
+
+    worldLink.forEach((x, i) => {
+      if (x.chapterEndAt >= currentTime && x.chapterStartAt <= currentTime) {
+        idx = i;
+      }
+    });
+
+    if (idx == -1) {
+      return -1;
+    }
+    else {
+      return worldLink[idx];
+    }
+  }
+
+  getAllWorldLinkChapters(eventId = null) {
+    let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+    let currentTime = Date.now();
+    if (eventId === null) {
+      worldLink = worldLink.filter((x) => x.chapterStartAt <= currentTime);
+    } else {
+      worldLink = worldLink.filter((x) => x.eventId === eventId);
+    }
+    
+
+    worldLink.forEach((x) => {
+      x.character = `${this.getCharacterName(x.gameCharacterId)} (Event ${x.eventId})`;
+    });
+
+    return worldLink;
+  }
+
+  getCharacterName(characterId) {
+    const gameCharacters = JSON.parse(fs.readFileSync('./sekai_master/gameCharacters.json'));
+    const charInfo = gameCharacters[characterId - 1];
+    return `${charInfo.givenName} ${charInfo.firstName}`.trim();
   }
 
   /**

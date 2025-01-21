@@ -5,8 +5,10 @@
  * @author Potor10
  */
 
-const { DMChannel } = require('discord.js');
+const { DMChannel, Events } = require('discord.js');
 const generateEmbed = require('../methods/generateEmbed'); 
+
+const { PermissionsBitField, ChannelType } = require('discord.js');
 
 // General constants used to reply to standard interactions
 const INTERACTION_CONST = {
@@ -23,7 +25,7 @@ const INTERACTION_CONST = {
 };
 
 module.exports = {
-  name: 'interactionCreate',
+  name: Events.InteractionCreate,
   async execute(interaction, discordClient) {
     if (interaction.isAutocomplete()) {
       const interactionIdx = discordClient.commands
@@ -46,7 +48,6 @@ module.exports = {
       discord_id: interaction.user.id,
       discord_name: `${interaction.user.username}#${interaction.user.discriminator}`,
       guild_id: interaction.guildId,
-      guild_name: interaction.channel instanceof DMChannel ? interaction.channel.recipient.username : interaction.member.guild.name,
       command: interaction.commandName,
       subcommand: interaction.options._subcommand,
       inputs: interaction.options._hoistedOptions
@@ -63,7 +64,7 @@ module.exports = {
       if (command.adminOnly) {
         // Check for server manager / administrate perms
         let permissions = interaction.member.permissions;
-        if (!permissions.has('ADMINISTRATOR') && !permissions.has('MANAGE_GUILD')) {
+        if (!permissions.has(PermissionsBitField.Flags.Administrator) && !permissions.has(PermissionsBitField.Flags.ManageGuild)) {
           await interaction.reply({
             embeds: [
               generateEmbed({
@@ -102,10 +103,6 @@ module.exports = {
         await command.execute(interaction, discordClient);
       } catch (error) {
         console.error(error);
-        await interaction.reply({
-          content: 'There was an error while executing this command!',
-          ephemeral: true
-        });
       }
     }
   }

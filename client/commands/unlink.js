@@ -4,13 +4,13 @@
  * @author Potor10
  */
 
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ButtonBuilder, ActionRowBuilder } = require('discord.js');
 const { NENE_COLOR, FOOTER } = require('../../constants');
 
 const COMMAND = require('../command_data/unlink');
 
 const generateSlashCommand = require('../methods/generateSlashCommand');
-const generateEmbed = require('../methods/generateEmbed'); 
+const generateEmbed = require('../methods/generateEmbed');
 
 /**
  * Generates the embed that is used when users request a link
@@ -21,28 +21,28 @@ const generateEmbed = require('../methods/generateEmbed');
  * @param {DiscordClient} client we are using to interact with disc
  * @return {EmbedBuilder} embed that we recieve to display to the user
  */
-const generateUnlinkEmbed = ({code, accountId, expires, content, client}) => {
+const generateUnlinkEmbed = ({ code, accountId, expires, content, client }) => {
   const unlinkInformation = {
     type: 'Unlink Information',
-    message: `Unlink Code: \`${code}\`\n` + 
-      `Account ID: \`${accountId}\`\n` + 
-      `Expires: <t:${Math.floor(expires/1000)}>`
+    message: `Unlink Code: \`${code}\`\n` +
+      `Account ID: \`${accountId}\`\n` +
+      `Expires: <t:${Math.floor(expires / 1000)}>`
   };
 
   const unlinkEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
     .setTitle(COMMAND.INFO.name.charAt(0).toUpperCase() + COMMAND.INFO.name.slice(1))
     .addFields(
-      {name: unlinkInformation.type, value: unlinkInformation.message},
-      {name: COMMAND.CONSTANTS.UNLINK_INSTRUCTIONS.type, value: COMMAND.CONSTANTS.UNLINK_INSTRUCTIONS.message}
+      { name: unlinkInformation.type, value: unlinkInformation.message },
+      { name: COMMAND.CONSTANTS.UNLINK_INSTRUCTIONS.type, value: COMMAND.CONSTANTS.UNLINK_INSTRUCTIONS.message }
     )
     .setImage(COMMAND.CONSTANTS.UNLINK_IMG)
     .setThumbnail(client.user.displayAvatarURL())
     .setTimestamp()
-    .setFooter({text: FOOTER, iconURL: client.user.displayAvatarURL()});
+    .setFooter({ text: FOOTER, iconURL: client.user.displayAvatarURL() });
 
   if (content) {
-    unlinkEmbed.addFields({name: content.type, value: content.message});
+    unlinkEmbed.addFields({ name: content.type, value: content.message });
   }
 
   return unlinkEmbed;
@@ -51,45 +51,29 @@ const generateUnlinkEmbed = ({code, accountId, expires, content, client}) => {
 module.exports = {
   ...COMMAND.INFO,
   data: generateSlashCommand(COMMAND.INFO),
-  
+
   async execute(interaction, discordClient) {
-    // { ephemeral: true }
     await interaction.deferReply({
       ephemeral: COMMAND.INFO.ephemeral
     });
 
     const db = discordClient.db;
-    const accountId = (interaction.options._hoistedOptions[0].value).replace(/\D/g,'');
+    const accountId = (interaction.options._hoistedOptions[0].value).replace(/\D/g, '');
 
     const sekaiCheck = db.prepare('SELECT * FROM users WHERE sekai_id=@sekaiId').all({
       sekaiId: accountId
     });
 
     // User exists in the database
-    if (!sekaiCheck.length) { 
+    if (!sekaiCheck.length) {
       await interaction.editReply({
         embeds: [
           generateEmbed({
-            name: COMMAND.INFO.name, 
-            content: COMMAND.CONSTANTS.NO_SEKAI_ERR, 
+            name: COMMAND.INFO.name,
+            content: COMMAND.CONSTANTS.NO_SEKAI_ERR,
             client: discordClient.client
           })
         ]
-      });
-      return;
-    }
-
-    if (!discordClient.checkRateLimit(interaction.user.id)) {
-      await interaction.editReply({
-        embeds: [generateEmbed({
-          name: COMMAND.INFO.name,
-          content: { 
-            type: COMMAND.CONSTANTS.RATE_LIMIT_ERR.type, 
-            message: COMMAND.CONSTANTS.RATE_LIMIT_ERR.message + 
-              `\n\nExpires: <t:${Math.floor(discordClient.getRateLimitRemoval(interaction.user.id) / 1000)}>`
-          },
-          client: discordClient.client
-        })]
       });
       return;
     }
@@ -103,173 +87,106 @@ module.exports = {
       return;
     }
 
+    if (!discordClient.checkRateLimit(interaction.user.id)) {
+      await interaction.editReply({
+        embeds: [generateEmbed({
+          name: COMMAND.INFO.name,
+          content: {
+            type: COMMAND.CONSTANTS.RATE_LIMIT_ERR.type,
+            message: COMMAND.CONSTANTS.RATE_LIMIT_ERR.message +
+              `\n\nExpires: <t:${Math.floor(discordClient.getRateLimitRemoval(interaction.user.id) / 1000)}>`
+          },
+          client: discordClient.client
+        })]
+      });
+      return;
+    }
 
-    discordClient.addSekaiRequest('profile', {
-      userId: accountId
-    }, async () => {
-      // Generate a new code for the user
-      const code = Math.random().toString(36).slice(-5);
-      const expires = Date.now() + COMMAND.CONSTANTS.INTERACTION_TIME;
+    const code = Math.random().toString(36).slice(-5);
+    const expires = Date.now() + COMMAND.CONSTANTS.INTERACTION_TIME;
 
-      const unlinkButton = new ActionRowBuilder()
-        .addComponents(new ButtonBuilder()
-          .setCustomId('unlink')
-          .setLabel('UNLINK')
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji(COMMAND.CONSTANTS.UNLINK_EMOJI));
+    const unlinkButton = new ActionRowBuilder()
+      .addComponents(new ButtonBuilder()
+        .setCustomId('unlink')
+        .setLabel('UNLINK')
+        .setStyle(4)
+        .setEmoji(COMMAND.CONSTANTS.UNLINK_EMOJI));
 
-      const unlinkMessage = await interaction.editReply({
+    const unlinkMessage = await interaction.editReply({
+      embeds: [
+        generateUnlinkEmbed({
+          code: code,
+          accountId: accountId,
+          expires: expires,
+          client: discordClient.client
+        })
+      ],
+      components: [unlinkButton],
+      fetchReply: true
+    });
+
+    let unlinked = false;
+
+    const filter = (i) => {
+      return i.customId == 'unlink';
+    };
+
+    const collector = unlinkMessage.createMessageComponentCollector({
+      filter,
+      time: COMMAND.CONSTANTS.INTERACTION_TIME
+    });
+
+    collector.on('collect', async (i) => {
+      await i.update({
         embeds: [
           generateUnlinkEmbed({
-            code: code, 
+            code: code,
             accountId: accountId,
             expires: expires,
             client: discordClient.client
           })
         ],
-        components: [unlinkButton],
-        fetchReply: true
+        components: []
       });
 
-      let unlinked = false;
-      let limited = false;
+      discordClient.addSekaiRequest('profile', {
+        userId: accountId
+      }, async (response) => {
+        if (response.userProfile.word === code) {
+          // Check through the client if the code is set in the description
+          db.prepare('DELETE FROM users WHERE sekai_id=@sekaiId').run({
+            sekaiId: accountId
+          });
 
-      const filter = (i) => {
-        return i.customId == 'unlink';
-      };
-  
-      const collector = unlinkMessage.createMessageComponentCollector({ 
-        filter, 
-        time: COMMAND.CONSTANTS.INTERACTION_TIME 
-      });
-      
-      collector.on('collect', async (i) => {
-        await i.update({
-          embeds: [
-            generateUnlinkEmbed({
-              code: code, 
-              accountId: accountId,
-              expires: expires,
-              client: discordClient.client
-            })
-          ],
-          components: []
-        });
-
-
-        if (!discordClient.checkRateLimit(interaction.user.id)) {
-          limited = true;
+          unlinked = true;
 
           await interaction.editReply({
             embeds: [
               generateUnlinkEmbed({
-                code: code, 
+                code: code,
                 accountId: accountId,
                 expires: expires,
-                content: { 
-                  type: COMMAND.CONSTANTS.RATE_LIMIT_ERR.type, 
-                  message: COMMAND.CONSTANTS.RATE_LIMIT_ERR.message + 
-                    `\n\nExpires: <t:${Math.floor(discordClient.getRateLimitRemoval(interaction.user.id) / 1000)}>`
-                },
+                content: COMMAND.CONSTANTS.UNLINK_SUCC,
                 client: discordClient.client
               })
             ],
             components: []
           });
-          return;
-        }
-  
-        discordClient.addSekaiRequest('profile', {
-          userId: accountId
-        }, async (response) => {
-          if (response.userProfile.word === code) {
-            // Check through the client if the code is set in the description
-            db.prepare('DELETE FROM users WHERE sekai_id=@sekaiId').run({
-              sekaiId: accountId
-            });
-
-            unlinked = true;
-
-            await interaction.editReply({
-              embeds: [
-                generateUnlinkEmbed({
-                  code: code, 
-                  accountId: accountId,
-                  expires: expires,
-                  content: COMMAND.CONSTANTS.UNLINK_SUCC,
-                  client: discordClient.client
-                })
-              ],
-              components: []
-            });
-          } else {
-            await interaction.editReply({
-              embeds: [
-                generateUnlinkEmbed({
-                  code: code, 
-                  accountId: accountId,
-                  expires: expires,
-                  content: COMMAND.CONSTANTS.BAD_CODE_ERR(response.userProfile.word),
-                  client: discordClient.client
-                })
-              ],
-              components: [unlinkButton]
-            });
-          }
-        }, async (err) => {
-          // Log the error
-          discordClient.logger.log({
-            level: 'error',
-            timestamp: Date.now(),
-            message: err.toString()
-          });
-
-          // Account could not be found
-          await interaction.editReply({ 
+        } else {
+          await interaction.editReply({
             embeds: [
               generateUnlinkEmbed({
-                code: code, 
+                code: code,
                 accountId: accountId,
                 expires: expires,
-                content: { type: 'error', message: err.toString() },
+                content: COMMAND.CONSTANTS.BAD_CODE_ERR(response.userProfile.word),
                 client: discordClient.client
               })
-            ], 
-            components: []
-          });
-        });
-      });
-
-      collector.on('end', async () => {
-        // No Response
-        if (!unlinked && !limited) {
-          await interaction.editReply({ 
-            embeds: [
-              generateUnlinkEmbed({
-                code: code, 
-                accountId: accountId,
-                expires: expires,
-                content: COMMAND.CONSTANTS.EXPIRED_CODE_ERR,
-                client: discordClient.client
-              })
-            ], 
-            components: []
+            ],
+            components: [unlinkButton]
           });
         }
-      });
-    }, async (err) => {
-      if (err.getCode() === 404) {
-        // We got an error trying to find this account
-        await interaction.editReply({
-          embeds: [
-            generateEmbed({
-              name: COMMAND.INFO.name, 
-              content: COMMAND.CONSTANTS.BAD_ID_ERR, 
-              client: discordClient.client
-            })
-          ]
-        });
-      } else {
+      }, async (err) => {
         // Log the error
         discordClient.logger.log({
           level: 'error',
@@ -277,14 +194,38 @@ module.exports = {
           message: err.toString()
         });
 
+        // Account could not be found
         await interaction.editReply({
-          embeds: [generateEmbed({
-            name: COMMAND.INFO.name,
-            content: { type: 'error', message: err.toString() },
-            client: discordClient.client
-          })]
+          embeds: [
+            generateUnlinkEmbed({
+              code: code,
+              accountId: accountId,
+              expires: expires,
+              content: { type: 'error', message: err.toString() },
+              client: discordClient.client
+            })
+          ],
+          components: []
+        });
+      });
+    });
+
+    collector.on('end', async (collected) => {
+      // No Response
+      if (!unlinked) {
+        await interaction.editReply({
+          embeds: [
+            generateUnlinkEmbed({
+              code: code,
+              accountId: accountId,
+              expires: expires,
+              content: COMMAND.CONSTANTS.EXPIRED_CODE_ERR,
+              client: discordClient.client
+            })
+          ],
+          components: []
         });
       }
     });
-  } 
+  }
 };

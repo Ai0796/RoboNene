@@ -24,7 +24,10 @@ const GAME_CONSTANTS = {
     'cards',
     'cardEpisodes',
     'musics',
-    'eventDeckBonuses'
+    'eventDeckBonuses',
+    'virtualLives',
+    'worldBlooms',
+    'gachas'
   ]
 };
 

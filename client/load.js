@@ -16,7 +16,11 @@ const commandFiles = fs.readdirSync(path.join(__dirname, '/commands')).filter(fi
 // Parse commands
 for (const file of commandFiles) {
 	const command = require(`./commands/${file}`);
-  console.log(`Loaded command ${command.data.name} from ${file}`);
+	if (command.data === null || command.data === undefined) {
+		console.log(`Command ${file} does not have a data object, Skipping Load.`);
+		continue;
+	}
+	console.log(`Loaded command ${command.data.name} from ${file}`);
 	commands.push(command);
 }
 

@@ -4,9 +4,10 @@
  * @author Potor10
  */
 
-const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { EmbedBuilder, PermissionsBitField } = require('discord.js');
 const { NENE_COLOR } = require('../constants');
 const RANKING_RANGE = require('./trackRankingRange.json');
+const RANKING_RANGE_V2 = require('./trackRankingRangeV2.json');
 const fs = require('fs');
 const generateRankingText = require('../client/methods/generateRankingTextChanges');
 
@@ -89,18 +90,22 @@ const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) =
     if (channel) {
       const guild = discordClient.client.guilds.cache.get(channel.guild.id);
       const perms = guild.members.me.permissionsIn(channel);
-      if (perms.has(PermissionFlagsBits.SendMessages)) {
-        await channel.send({ embeds: [embed] });
-        return;
+      if (perms.has(PermissionsBitField.Flags.SendMessages)) {
+        try {
+          await channel.send({ embeds: [embed] });
+          return;
+        } catch {
+          console.log(`Failed to send message to ${target.channel_id}`);
+        }
       }
     }
 
     // Request deletion of the channel from the database
-    console.log(`Requesting deletion of ${target.channel_id}`);
-    discordClient.db.prepare('DELETE FROM tracking WHERE guild_id=@guildId AND channel_id=@channelId').run({
-      guildId: target.guild_id,
-      channelId: target.channel_id
-    });
+    // console.log(`Requesting deletion of ${target.channel_id}`);
+    // discordClient.db.prepare('DELETE FROM tracking WHERE guild_id=@guildId AND channel_id=@channelId').run({
+    //   guildId: target.guild_id,
+    //   channelId: target.channel_id
+    // });
   };
 
   const removeDuplicates = async (arr) => {
@@ -221,6 +226,39 @@ const requestRanking = async (event, discordClient) => {
       }
     });
 
+    if (response.userWorldBloomChapterRankings !== undefined) {
+      response.userWorldBloomChapterRankings.forEach((chapter) => {
+        let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
+        chapter.rankings.forEach((ranking) => {
+          let score = ranking['score'];
+          let rank = ranking['rank'];
+          let id = ranking['userId'];
+          let games = 1;
+          if (id in gameCache) {
+            if (score >= gameCache[id].score + 100) {
+              gameCache[id].games++;
+              gameCache[id].score = score;
+            }
+          } else {
+            gameCache[id] = {'score': score, 'games': 1};
+          }
+
+          games = gameCache[id].games;
+
+          discordClient.cutoffdb.prepare('INSERT INTO cutoffs ' +
+            '(EventID, Tier, Timestamp, Score, ID, GameNum) ' +
+            'VALUES(@eventID, @tier, @timestamp, @score, @id, @gameNum)').run({
+              score: score,
+              eventID: chapterId,
+              tier: rank,
+              timestamp: timestamp,
+              id: id,
+              gameNum: games
+            });
+        });
+      });
+    }
+
     await writeGames(gameCache);
     sendTrackingEmbed(response.rankings, event, timestamp, discordClient);
   };
@@ -228,14 +266,34 @@ const requestRanking = async (event, discordClient) => {
   for(const idx in RANKING_RANGE) {
     // Make Priority Requests (We Need These On Time)
     discordClient.addPrioritySekaiRequest('ranking', {
-      eventId: event.id,
-      ...RANKING_RANGE[idx]
+      eventId: event.id
     }, retrieveResult, (err) => {
       discordClient.logger.log({
         level: 'error',
         message: err.toString()
       });
     });
+  }
+};
+
+const getWorldLink = (eventId) => {
+  let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+  worldLink = worldLink.filter((x) => x.eventId === eventId);
+
+  let idx = -1;
+  let currentTime = Date.now();
+
+  worldLink.forEach((x, i) => {
+    if (x.chapterEndAt >= currentTime && x.chapterStartAt <= currentTime) {
+      idx = i;
+    }
+  });
+
+  if (idx == -1) {
+    return -1;
+  }
+  else {
+    return worldLink[idx];
   }
 };
 
@@ -253,7 +311,8 @@ const getRankingEvent = () => {
 
   const currentTime = Date.now();
   for (let i = 0; i < events.length; i++) {
-    if (events[i].startAt <= currentTime && events[i].aggregateAt >= currentTime) {
+    //buffer of 15 minutes for after event
+    if (events[i].startAt <= currentTime && events[i].aggregateAt + 60 * 15 * 1000 >= currentTime) {
       return {
         id: events[i].id,
         banner: 'https://sekai-res.dnaroma.eu/file/sekai-en-assets/event/' +
@@ -271,7 +330,7 @@ const getRankingEvent = () => {
  */
 const trackRankingData = async (discordClient) => {
   // Identify current event from schedule
-  const event = discordClient.getCurrentEvent();
+  const event = getRankingEvent();
 
   // change later back to correct === -1
   if (event.id === -1) {

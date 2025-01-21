@@ -14,7 +14,7 @@ const generateEmbed = require('../methods/generateEmbed');
 
 module.exports = {
   ...COMMAND.INFO,
-  data: generateSlashCommand(COMMAND.INFO),
+  data: null,
   
   async execute(interaction, discordClient) {
     await interaction.deferReply({

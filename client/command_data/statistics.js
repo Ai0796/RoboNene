@@ -25,6 +25,13 @@ module.exports = {
                             'name': 'event',
                             'required': false,
                             'description': 'The event to display for',
+                        },
+                        {
+                            'type': 'integer',
+                            'name': 'chapter',
+                            'required': false,
+                            'description': 'The chapter to display for (World Link Only)',
+                            'autocomplete': true
                         }
                     ]
                 },

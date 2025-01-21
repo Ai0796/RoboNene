@@ -9,7 +9,7 @@ const COMMAND = require('../command_data/tracking');
 const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed'); 
 
-const { PermissionFlagsBits } = require('discord.js');
+const { PermissionsBitField } = require('discord.js');
 
 module.exports = {
   ...COMMAND.INFO,
@@ -39,8 +39,8 @@ module.exports = {
     }
 
     if (interaction.options._hoistedOptions[2].value) {
-      const perms = channelData.channel.permissionsFor(discordClient.client.user.id);
-      if (!perms.has(PermissionFlagsBits.SendMessages)) {
+      
+      if (!channelData.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.SendMessages)) {
         await interaction.editReply({
           embeds: [
             generateEmbed({

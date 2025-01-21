@@ -20,7 +20,7 @@ const { NENE_COLOR, FOOTER } = require('../../constants');
 const generateEmbed = ({ name, content, image, client }) => {
     const embed = new EmbedBuilder()
         .setColor(NENE_COLOR)
-        .setTitle(name.charAt(0).toUpperCase() + name.slice(1))
+        .setTitle(name.charAt(0).toUpperCase() + name.slice(1) + ' Nyaa~')
         .addFields({
             name: content.type.charAt(0).toUpperCase() + content.type.slice(1),
             value: content.message.charAt(0).toUpperCase() + content.message.slice(1)

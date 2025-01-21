@@ -6,15 +6,20 @@ const { Timeline } = require('twittxr');
 const { TwitterCookie } = require('../config');
 
 const getTweets = async (username) => {
-    
-    let data = await Timeline.get(username, 
-        {
-            cookie: TwitterCookie,
-            retweets: false,
-            replies: false
-        });
+    try {
+        let data = await Timeline.get(username,
+            {
+                cookie: TwitterCookie,
+                retweets: false,
+                replies: false
+            });
 
-    return data.map((tweet) => { return tweet.id; });
+        return data.map((tweet) => { return tweet.id; });
+    }
+    catch (e) {
+        console.log(e);
+        return [];
+    }
 };
 
 const collectTwitter = async (data, discordClient) => {

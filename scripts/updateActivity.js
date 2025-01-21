@@ -11,6 +11,11 @@ const serverNumActivity = async (client) => {
         `${client.guilds.cache.size} ${(client.guilds.cache.size > 1) ? 'servers' : 'server'}`);
 };
 
+const getCharacterName = (characterId, gameCharacters) => {
+    const charInfo = gameCharacters[characterId - 1];
+    return `${charInfo.givenName} ${charInfo.firstName}`.trim();
+};
+
 const nextEventActivity = async (client) => {
     const events = JSON.parse(fs.readFileSync('./sekai_master/events.json'));
 
@@ -24,10 +29,46 @@ const nextEventActivity = async (client) => {
         }
     }
 
+    var timeUntilStr;
     if (currentEventIdx == -1) {
         serverNumActivity(client);
+    } else if (events[currentEventIdx].eventType === 'world_bloom') {
+        const gameCharacters = JSON.parse(fs.readFileSync('./sekai_master/gameCharacters.json'));
+        const worldBlooms = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+
+        let world_events = worldBlooms.filter((x) => x.eventId === events[currentEventIdx].id);
+        world_events.sort((a, b) => a.id - b.id);
+
+        let worldEventIdx = -1;
+
+        for (let i = 0; i < world_events.length; i++) {
+            if (Math.floor(world_events[i].aggregateAt / 1000) > Math.floor(currentDate / 1000)) {
+                worldEventIdx = i;
+                break;
+            }
+        }
+
+        if (worldEventIdx == -1) {
+            serverNumActivity(client);
+        } else {
+            let character = getCharacterName(world_events[worldEventIdx].gameCharacterId, gameCharacters);
+            var nextCharacter;
+            if (worldEventIdx < world_events.length - 1) {
+                nextCharacter = getCharacterName(world_events[worldEventIdx + 1].gameCharacterId, gameCharacters);
+            }
+
+            if (currentDate < world_events[worldEventIdx].chapterStartAt) {
+                timeUntilStr = `${await formatTime(world_events[worldEventIdx].chapterStartAt - currentDate)} Until ${character}'s Chapter Starts`;
+            } else if (currentDate < world_events[worldEventIdx].aggregateAt && nextCharacter != undefined) {
+                timeUntilStr = `${await formatTime(world_events[worldEventIdx].aggregateAt - currentDate)} Until ${character}'s Chapter Ends (${nextCharacter}'s Chapter Next)`;
+            } else {
+                timeUntilStr = `${await formatTime(world_events[worldEventIdx].aggregateAt - currentDate)} Until ${character}'s Chapter Ends`;
+            }
+            client.user.setActivity(timeUntilStr);
+        }
+
     } else {
-        var timeUntilStr;
+
         if (currentDate < events[currentEventIdx].startAt) {
             timeUntilStr = `${await formatTime(events[currentEventIdx].startAt - currentDate)} Until ${events[currentEventIdx].name} Starts`;
         } else if (currentDate < events[currentEventIdx].aggregateAt) {

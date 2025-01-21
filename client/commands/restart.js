@@ -12,7 +12,7 @@ const fs = require('fs');
 const { PermissionFlagsBits } = require('discord.js');
 
 function isAdmin(msg) {
-    return msg.member.permissionsIn(msg.channel).has(PermissionFlagsBits.Administrator);
+    return msg.member.permissionsIn(msg.channel).has(PermissionFlagsBits.ManageMessages);
 }
 
 function addMessage(message, channel) {
@@ -42,7 +42,7 @@ module.exports = {
         await interaction.deferReply({
             ephemeral: COMMAND.INFO.ephemeral
         });
-        if(isAdmin(interaction)) {
+        if(isAdmin(interaction) && interaction.guildId == '967923753470291978') {
             try {
 
                 // First I create an exec command which is executed before current process is killed

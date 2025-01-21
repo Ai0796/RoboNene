@@ -64,8 +64,9 @@ async function getCutoffs(discordClient) {
             return -1;
         } else {
             const ids = discordClient.db.prepare('Select * FROM users').all();
-            ids.forEach(id => {
-                discordClient.addPrioritySekaiRequest('ranking', {
+            console.log('Getting cutoffs for ' + ids.length + ' users');
+            ids.forEach(async(id) => {
+                discordClient.addSekaiRequest('ranking', {
                     eventId: event,
                     targetUserId: id.sekai_id,
                     lowerLimit: 0
@@ -75,6 +76,7 @@ async function getCutoffs(discordClient) {
                         message: err.toString()
                     });
                 });
+                await new Promise(r => setTimeout(r, 50));
             });
         }
     } catch (error) {

@@ -3,10 +3,11 @@
  * @author Ai0796
  */
 
-const { CUTOFF_INTERVAL } = require('../constants');
+const { TRACK_INTERVAL } = require('../constants');
 const fs = require('fs');
 
 const fp = './JSONs/track.json';
+const userFp = './JSONs/userTrack.json';
 
 /**
  * Writes JSON response from Project Sekai servers to local JSON
@@ -17,6 +18,9 @@ async function clearFile() {
     try {
         if (fs.existsSync(fp)) {
             fs.unlinkSync(fp);
+        }
+        if (fs.existsSync(userFp)) {
+            fs.unlinkSync(userFp);
         }
     } catch (e) {
         console.log('Error occured while writing Tracking: ', e);
@@ -62,6 +66,34 @@ function readScores(tier) {
     return [];
 }
 
+function getUserTrackFile() {
+    try {
+        if (!fs.existsSync(userFp)) {
+            return [];
+        }
+        else {
+            let data = JSON.parse(fs.readFileSync(userFp, 'utf8'));
+            if (Array.isArray(data)) {
+                return data;
+            } else {
+                return [];
+            }
+        }
+    } catch (e) {
+        console.log('Error occured while reading user tracking: ', e);
+    }
+}
+
+function saveUserTrackFile(object) {
+    fs.writeFile(userFp, JSON.stringify(object), err => {
+        if (err) {
+            console.log('Error writing user tracking', err);
+        } else {
+            console.log('Wrote user tracking Successfully');
+        }
+    });
+}
+
 function getUsers(tier, score) {
     tier = tier.toString();
     var users = [];
@@ -105,25 +137,83 @@ function getUsers(tier, score) {
 async function getCutoffs(discordClient) {
     async function checkResults(response) {
         try {
-            let event = getRankingEvent().id;
-            if (response['rankings'][0] != null && event != -1) {
-                let score = response['rankings'][0]['score'];
-                let rank = response['rankings'][0]['rank'];
-                let scoreList = readScores(rank);
+            if (response['rankings'][0] == null) return;
+            let tiers = readTiers();
+            let trackFile = getUserTrackFile();
+            let userTrack = {};
+            trackFile.forEach((track) => {
+                if (track.trackId in userTrack) {
+                    userTrack[track.trackId].push(track);
+                } else {
+                    userTrack[track.trackId] = [track];
+                }
+            });
 
-                scoreList.forEach((oldScore) => {
-                    if (score >= parseInt(oldScore)) {
-                        let users = getUsers(rank, oldScore);
+            let changed = false;
 
-                        if (users != undefined) {
-                            users.forEach((pair) => {
-                                let channel = discordClient.client.channels.cache.get(pair[0]);
-                                channel.send(`${pair[1]} T${rank} Has started moving, they are now at ${score.toLocaleString()} EP\nYou tracked ${parseInt(oldScore).toLocaleString() }`);
-                            });
+            response['rankings'].forEach((tier, i) => {
+                let rank = i+1;
+                let score = tier.score;
+                if (tiers.includes(rank.toString())) {
+                    let scoreList = readScores(rank.toString());
+
+                    scoreList.forEach((oldScore) => {
+                        if (score >= parseInt(oldScore)) {
+                            let users = getUsers(rank, oldScore);
+
+                            if (users != undefined) {
+                                users.forEach((pair) => {
+                                    let channel = discordClient.client.channels.cache.get(pair[0]);
+                                    try {
+                                        channel.send(`${ pair[1]} T${ rank } Has started meowing, they are now at ${ score.toLocaleString() } EP\nYou tracked ${ parseInt(oldScore).toLocaleString()} Nyaa~`);
+                                    } catch (e) {
+                                        console.log('Error occured while sending message: ', e);
+                                    }
+                                });
+                            }
                         }
-                    }
-                });
-            }
+                    });
+                }
+
+                if (tier['userId'].toString() in userTrack) {
+                    userTrack[tier['userId']].forEach((track) => {
+                        track.currentTier = i+1;
+                        let lastScore = track.lastScore;
+                        let currentScore = tier.score;
+                        let change = currentScore - lastScore;
+                        if (change == 0) {
+                            return;
+                        }
+                        track.lastScore = currentScore;
+                        changed = true;
+
+                        if (track.cutoff) {
+                            if (currentScore >= track.cutoff) {
+                                let channel = discordClient.client.channels.cache.get(track.channel);
+                                try {
+                                    channel.send(`T${rank} ${track.name} has passed the cutoff ${track.cutoff.toLocaleString()}, they are now at ${score.toLocaleString()} EP`);
+                                } catch (e) {
+                                    console.log('Error occured while sending message: ', e);
+                                }
+                                track.cutoff = null;
+                            }
+                        } if (track.min || track.max) {
+                            if (change >= track.min && change <= track.max) {
+                                let channel = discordClient.client.channels.cache.get(track.channel);
+                                try {
+                                    let minStr = track.min ? `Min: ${track.min.toLocaleString()}` : '';
+                                    let maxStr = track.max == Number.MAX_SAFE_INTEGER ? 'Max: Infinte' : `Max: ${track.max.toLocaleString()}`;
+                                    channel.send(`T${track.currentTier} ${track.name} had a game with ${(change).toLocaleString()} EP. Current EP: ${score.toLocaleString()} EP (${minStr} ${maxStr})`);
+                                } catch (e) {
+                                    console.log('Error occured while sending message: ', e);
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+            if (changed) saveUserTrackFile(userTrack);
         } catch (e) {
             console.log('Error occured while adding cutoffs: ', e);
         }
@@ -134,17 +224,12 @@ async function getCutoffs(discordClient) {
             await clearFile();
             return -1;
         } else {
-            let tiers = readTiers();
-            tiers.forEach(cutoff => {
-                discordClient.addPrioritySekaiRequest('ranking', {
-                    eventId: event,
-                    targetRank: cutoff,
-                    lowerLimit: 0
-                }, checkResults, (err) => {
-                    discordClient.logger.log({
-                        level: 'error',
-                        message: err.toString()
-                    });
+            discordClient.addPrioritySekaiRequest('ranking', {
+                eventId: event,
+            }, checkResults, (err) => {
+                discordClient.logger.log({
+                    level: 'error',
+                    message: err.toString()
                 });
             });
         }
@@ -191,7 +276,7 @@ const getRankingEvent = () => {
  * @param {DiscordClient} discordClient the client we are using 
  */
 const trackTierData = async (discordClient) => {
-    let dataUpdater = setInterval(getCutoffs, CUTOFF_INTERVAL, discordClient);
+    let dataUpdater = setInterval(getCutoffs, TRACK_INTERVAL, discordClient);
     getCutoffs(discordClient); //Run function once since setInterval waits an interval to run it
 };
 

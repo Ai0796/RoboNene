@@ -9,12 +9,13 @@ const { NENE_COLOR, FOOTER, RESULTS_PER_PAGE } = require('../../constants');
 
 const COMMAND = require('../command_data/leaderboard');
 
-const MAX_PAGE = Math.ceil(120 / RESULTS_PER_PAGE) -1;
+const MAX_PAGE = Math.ceil(100 / RESULTS_PER_PAGE) -1;
 
 const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateRankingText = require('../methods/generateRankingTextChanges');
 const generateAlternateRankingText = require('../methods/generateAlternateRankingText');
 const generateEmbed = require('../methods/generateEmbed'); 
+const fs = require('fs');
 
 function getLastHour(sortedList, el) {
   for (let i = 0; i < sortedList.length; i++) {
@@ -26,6 +27,94 @@ function getLastHour(sortedList, el) {
 }
 
 const HOUR = 3600000;
+
+function getLastHourData(response, rankingData, event, discordClient) {
+  let data = discordClient.cutoffdb.prepare('SELECT Timestamp, Score FROM cutoffs ' +
+    'WHERE (EventID=@eventID AND ID=@id)').all({
+      id: response['rankings'][0]['userId'],
+      eventID: event.id
+    });
+
+  let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+  let timestamps = rankData.map(x => x.timestamp);
+  timestamps.sort((a, b) => a - b);
+  let lastTimestamp = timestamps[timestamps.length - 1];
+
+  let lastHourIndex = getLastHour(timestamps, lastTimestamp - HOUR);
+  let timestampIndex = timestamps[lastHourIndex];
+
+  let lastHourCutoffs = [];
+  let tierChange = [];
+  let GPH = [];
+  let gamesPlayed = [];
+  let userIds = [];
+
+  for (let i = 0; i < rankingData.length; i++) {
+    lastHourCutoffs.push(-1);
+    tierChange.push(0);
+    gamesPlayed.push(-1);
+    GPH.push(-1);
+    userIds.push(rankingData[i].userId);
+  }
+
+  let currentData = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
+    'WHERE (EventID=@eventID AND Timestamp=@timestamp)').all({
+      eventID: event.id,
+      timestamp: lastTimestamp,
+    });
+
+  let lastHourData = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
+    'WHERE (EventID=@eventID AND Timestamp=@timestamp)').all({
+      eventID: event.id,
+      timestamp: timestampIndex,
+    });
+
+  lastHourData.sort((a, b) => a.Tier - b.Tier);
+  let currentGamesPlayed = {};
+  currentData.forEach(x => {
+    currentGamesPlayed[x.ID] = { 'id': x.ID, 'score': x.Score, 'games': x.GameNum || 0, 'tier': x.Tier };
+  });
+
+  lastHourData.forEach((data) => {
+    let gamesPlayedData = currentGamesPlayed[data.ID];
+
+    if (gamesPlayedData) {
+      let index = userIds.indexOf(data.ID);
+      if (index === -1) return;
+      lastHourCutoffs[index] = data.Score;
+      tierChange[index] = data.Tier - gamesPlayedData.tier;
+      GPH[index] = Math.max(gamesPlayedData.games - data.GameNum, 0);
+      gamesPlayed[index] = gamesPlayedData.games || 0;
+      if (rankingData[index].score >= gamesPlayedData.score + 100) {
+        GPH[index]++;
+        gamesPlayed[index]++;
+      }
+    }
+  });
+
+  return [lastHourCutoffs, tierChange, GPH, gamesPlayed, lastTimestamp];
+}
+
+const getWorldLink = (eventId) => {
+  let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+  worldLink = worldLink.filter((x) => x.eventId === eventId);
+
+  let idx = -1;
+  let currentTime = Date.now();
+
+  worldLink.forEach((x, i) => {
+    if (x.chapterEndAt >= currentTime && x.chapterStartAt <= currentTime) {
+      idx = i;
+    }
+  });
+
+  if (idx == -1) {
+    return -1;
+  }
+  else {
+    return worldLink[idx];
+  }
+};
 
 module.exports = {
   ...COMMAND.INFO,
@@ -69,9 +158,6 @@ module.exports = {
 
     discordClient.addSekaiRequest('ranking', {
       eventId: event.id,
-      targetRank: 61,
-      lowerLimit: 59,
-      higherLimit: 60
     }, async (response) => {
       // Check if the response is valid
       if (!response.rankings) {
@@ -98,7 +184,7 @@ module.exports = {
         return;
       }
 
-      const rankingData = response.rankings;
+      let rankingData = response.rankings;
       const timestamp = Date.now();
 
       let target = 0;
@@ -106,7 +192,7 @@ module.exports = {
 
       if (interaction.options._hoistedOptions.length) {
         // User has selected a specific rank to jump to
-          if (interaction.options._hoistedOptions[0].value > 120 || 
+          if (interaction.options._hoistedOptions[0].value > 100 || 
             interaction.options._hoistedOptions[0].value < 1) {
             await interaction.editReply({
               embeds: [
@@ -127,80 +213,34 @@ module.exports = {
       let start = page * RESULTS_PER_PAGE;
       let end = start + RESULTS_PER_PAGE;
 
-      let data = discordClient.cutoffdb.prepare('SELECT Timestamp, Score FROM cutoffs ' +
-        'WHERE (EventID=@eventID AND ID=@id)').all({
-          id: response['rankings'][0]['userId'],
-          eventID: event.id
-        });
+      let overallData = getLastHourData(response, rankingData, event, discordClient);
+      var chapterData, chapterRankingData;
 
-      let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-      let timestamps = rankData.map(x => x.timestamp);
-      timestamps.sort((a, b) => a - b);
-      let lastTimestamp = timestamps[timestamps.length - 1];
+      let [lastHourCutoffs, tierChange, GPH, gamesPlayed, timestampIndex] = overallData;
 
-      let lastHourIndex = getLastHour(timestamps, lastTimestamp - HOUR);
-      let timestampIndex = timestamps[lastHourIndex];
-
-      let lastHourCutoffs = [];
-      let tierChange = [];
-      let GPH = [];
-      let gamesPlayed = [];
-      let userIds = [];
-
-      for(let i = 0; i < rankingData.length; i++) {
-        lastHourCutoffs.push(-1);
-        tierChange.push(0);
-        gamesPlayed.push(-1);
-        GPH.push(-1);
-        userIds.push(rankingData[i].userId);
+      if (getWorldLink(event.id) !== -1) {
+        let worldLink = getWorldLink(event.id);
+        console.log(worldLink.chapterNo);
+        worldLink.id = parseInt(`${worldLink.eventId}${worldLink.gameCharacterId}`);
+        let data = response.userWorldBloomChapterRankings[worldLink.chapterNo - 1];
+        chapterData = getLastHourData(data, data.rankings, worldLink, discordClient);
+        chapterRankingData = response.userWorldBloomChapterRankings[worldLink.chapterNo-1].rankings;
+        [lastHourCutoffs, tierChange, GPH, gamesPlayed, timestampIndex] = chapterData;
+        rankingData = chapterRankingData;
       }
-
-      let currentData = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-        'WHERE (EventID=@eventID AND Timestamp=@timestamp)').all({
-          eventID: event.id,
-          timestamp: lastTimestamp,
-        });
-
-      let lastHourData = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-        'WHERE (EventID=@eventID AND Timestamp=@timestamp)').all({
-          eventID: event.id,
-          timestamp: timestampIndex,
-        });
-
-      lastHourData.sort((a, b) => a.Tier - b.Tier);
-      let currentGamesPlayed = {};
-      currentData.forEach(x => {
-        currentGamesPlayed[x.ID] = {'id': x.ID, 'score': x.Score, 'games': x.GameNum || 0, 'tier': x.Tier};
-      });
-
-      lastHourData.forEach((data) => {
-        let gamesPlayedData = currentGamesPlayed[data.ID];
-
-        if (gamesPlayedData) {
-          let index = userIds.indexOf(data.ID);
-          if (index === -1) return;
-          lastHourCutoffs[index] = data.Score;
-          tierChange[index] = data.Tier - gamesPlayedData.tier;
-          GPH[index] = Math.max(gamesPlayedData.games - data.GameNum, 0);
-          gamesPlayed[index] = gamesPlayedData.games;
-          if (rankingData[index].score >= gamesPlayedData.score + 100) {
-            GPH[index]++;
-            gamesPlayed[index]++;
-          }
-        }
-      });
 
       let mobile = false;
       let alt = false;
       let offset = false;
+      let chapter = true;
       var slice, sliceOffset, sliceTierChange, sliceGPH, sliceGamesPlayed;
 
       let leaderboardText = generateRankingText(rankingData.slice(start, end), page, target, lastHourCutoffs.slice(start, end), tierChange.slice(start, end), mobile);
       
       let leaderboardEmbed = new EmbedBuilder()
         .setColor(NENE_COLOR)
-        .setTitle(`${event.name}`)
-        .setDescription(`T120 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>`)
+        .setTitle(`${event.name} Nyaa~`)
+        .setDescription(`T100 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>`)
         .addFields({name: `Page ${page+1}`, value: leaderboardText, inline: false})
         .setThumbnail(event.banner)
         .setTimestamp()
@@ -234,9 +274,23 @@ module.exports = {
             .setStyle(ButtonStyle.Secondary)
             .setEmoji(COMMAND.CONSTANTS.ALT));
 
+      const worldLinkButtons = new ActionRowBuilder();
+        
+      if (getWorldLink(event.id) !== -1) {
+        worldLinkButtons.addComponents(
+          new ButtonBuilder()
+            .setCustomId('chapter')
+            .setLabel('CHAPTER')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji(COMMAND.CONSTANTS.LINK)
+        );
+      }
+
+      let components = (getWorldLink(event.id) !== -1) ? [leaderboardButtons, worldLinkButtons] : [leaderboardButtons];
+
       const leaderboardMessage = await interaction.editReply({ 
         embeds: [leaderboardEmbed], 
-        components: [leaderboardButtons],
+        components: components,
         fetchReply: true
       });
 
@@ -246,7 +300,8 @@ module.exports = {
         i.customId == 'next' || 
         i.customId == 'mobile' || 
         i.customId == 'alt' ||
-        i.customId == 'offset';
+        i.customId == 'offset' ||
+        i.customId == 'chapter';
       };
 
       const collector = leaderboardMessage.createMessageComponentCollector({ 
@@ -288,6 +343,17 @@ module.exports = {
           alt = !alt;
         } else if (i.customId === 'offset') {
           offset = !offset;
+        } else if (i.customId === 'chapter') {
+          if (chapter === true) {
+            [lastHourCutoffs, tierChange, GPH, gamesPlayed, timestampIndex] = overallData;
+            rankingData = response.rankings;
+          } else {
+            [lastHourCutoffs, tierChange, GPH, gamesPlayed, timestampIndex] = chapterData;
+            rankingData = chapterRankingData;
+          }
+          chapter = !chapter;
+        } else {
+          return;
         }
 
         start = page * RESULTS_PER_PAGE;
@@ -320,8 +386,8 @@ module.exports = {
         }
         leaderboardEmbed = new EmbedBuilder()
           .setColor(NENE_COLOR)
-          .setTitle(`${event.name}`)
-          .setDescription(`T100 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>`)
+          .setTitle(`${event.name} Nyaa~`)
+          .setDescription(`T100 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>\n`)
           .addFields({name: `Page ${page+1} / ${MAX_PAGE+1}`, value: leaderboardText, inline: false})
           .setThumbnail(event.banner)
           .setTimestamp()
@@ -329,7 +395,7 @@ module.exports = {
 
         await i.update({ 
           embeds: [leaderboardEmbed], 
-          components: [leaderboardButtons]
+          components: components
         });
       });
 

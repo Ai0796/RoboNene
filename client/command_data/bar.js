@@ -25,7 +25,7 @@ module.exports = {
           {
             'type': 'integer',
             'name': 'hour',
-            'required': true,
+            'required': false,
             'description': 'The hour to display for',
             'minValue': 0
           },

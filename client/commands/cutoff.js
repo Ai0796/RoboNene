@@ -7,6 +7,7 @@
 const { EmbedBuilder } = require('discord.js');
 const { DIR_DATA, NENE_COLOR, FOOTER } = require('../../constants');
 const https = require('https');
+const http = require('http');
 const fs = require('fs');
 const regression = require('regression');
 
@@ -15,6 +16,12 @@ const COMMAND = require('../command_data/cutoff');
 const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 const binarySearch = require('../methods/binarySearch');
+const { parse } = require('csv-parse');
+const weightedLinearRegression = require('../methods/weightedLinearRegression');
+const bisectLeft = require('../methods/bisect');
+
+const fp = './JSONs/weights.json';
+const weights = JSON.parse(fs.readFileSync(fp, 'utf-8'));
 
 /**
  * Operates on a http request and returns the current rate being hosted on GH actions.
@@ -120,11 +127,14 @@ const generateCutoff = async ({ interaction, event,
   // Estimate texts used in the embed
   let noSmoothingEstimate = 'N/A';
   let smoothingEstimate = 'N/A';
+  let weightedEstimate = 'N/A';
+  let weightedErrorStr = 'N/A';
   let noSmoothingError = 'N/A';
   let smoothingError = 'N/A';
 
   // The string we show that highlights the equation we use in detailed
   let linEquationStr = '';
+  let weightedEquationStr = '';
 
   // Saved indices of critical timestamps
   let oneDayIdx = -1;
@@ -233,8 +243,22 @@ const generateCutoff = async ({ interaction, event,
     noSmoothingError = Math.round(error).toLocaleString();
 
     // Generate the string for the equation
-    linEquationStr = `\n*${+(model.equation[0]).toFixed(5)} \\* ` +
-      `${+(finalRate).toFixed(2)} \\* ms into event + ${+(model.equation[1]).toFixed(2)}*`;
+    linEquationStr = `\n\`${+(model.equation[0] + finalRate * 1000).toFixed(2)} \\* ` +
+      `seconds into event + ${+(model.equation[1]).toFixed(2)}\``;
+
+    // Create weighted linear regression model
+    const weightedModel = weightedLinearRegression(points, points.map((x) => (x[0]/86400000)**2));
+    const weightedPredicted = (weightedModel.equation[0] * finalRate * duration) + weightedModel.equation[1];
+
+    // Calculate Weighted Model Error
+    const weightedError = stdError(points, weightedModel, finalRate) * (duration / points[points.length - 1][0]);
+
+    // Final weighted model
+    weightedEstimate = Math.round(weightedPredicted).toLocaleString();
+    weightedErrorStr = Math.round(weightedError).toLocaleString();
+
+    weightedEquationStr = `\n\`${+(weightedModel.equation[0] * finalRate * 1000).toFixed(2)} \\*` +
+      ` seconds into event + ${+(weightedModel.equation[1]).toFixed(2)}\``;
 
     // Calculate smoothed result
     let totalWeight = 0;
@@ -276,8 +300,6 @@ const generateCutoff = async ({ interaction, event,
         amtThrough = (smoothingPoints[smoothingPoints.length - 1][0]) / duration;
       }
 
-      // console.log(`last point ts ${smoothingPoints[smoothingPoints.length-1][0]}`)
-
       // Total score of all of our estimates with account to weight
       if(!isNaN(predictedSmoothed))
       {
@@ -292,6 +314,27 @@ const generateCutoff = async ({ interaction, event,
     smoothingError = Math.round(errorSmoothed).toLocaleString();
   }
 
+  const eventPercentage = Math.min((timestamp - event.startAt) * 100 / duration, 100);
+
+  //weight consists of 3 lists, percentage, std_dev, and mean
+  const weight = weights[tier.toString()];
+  let percentage = weight[0];
+  let std_dev = weight[1];
+  let mean = weight[2];
+
+  let i = bisectLeft(percentage, eventPercentage / 100.0);
+
+  if (i == percentage.length) {
+    i--;
+  }
+
+  console.log(`Using weight index ${i}/${percentage.length} for tier ${tier}`);
+
+  let sigma = (score - mean[i]) / std_dev[i];
+  let NormalEstimate = Math.round((sigma * std_dev[std_dev.length - 1]) + mean[mean.length - 1]);
+
+  let regEquationStr = `\n\`${sigma.toFixed(2)} * ${std_dev[std_dev.length - 1].toFixed(2)} + ${mean[mean.length - 1].toFixed(2)}\``;
+
   // Generate the cutoff embed
   const lastHourPtTimeMs = new Date(lastHourPt.timestamp).getTime();
   const lastHourPtTime = (timestamp > event.aggregateAt) ? Math.floor(timestamp / 1000) :
@@ -299,11 +342,9 @@ const generateCutoff = async ({ interaction, event,
   const lastHourPtSpeed = (timestamp > event.aggregateAt) ? 0 :
     Math.round((score - lastHourPt.score) * 3600000 / (timestamp - lastHourPtTimeMs));
 
-  const eventPercentage = Math.min((timestamp - event.startAt) * 100 / duration, 100);
-
   const cutoffEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle(`${event.name} T${tier} Cutoff`)
+    .setTitle(`${event.name} T${tier} Cutoff Nyaa~`)
     .setDescription(`**Requested:** <t:${Math.floor(timestamp / 1000)}:R>`)
     .setThumbnail(event.banner)
     .addFields(
@@ -331,9 +372,14 @@ const generateCutoff = async ({ interaction, event,
     value: `Estimated Points: \`\`${noSmoothingEstimate}` +
     ` ± ${noSmoothingError}\`\`\n` +
     ((detailed) ? `*${COMMAND.CONSTANTS.PRED_DESC}*${linEquationStr}\n\n` : '') +
+    `Estimated Points (Weighted): \`\`${weightedEstimate}` +
+    ` ± ${weightedErrorStr}\`\`\n` +
+    ((detailed) ? `*${COMMAND.CONSTANTS.WEIGHT_PRED_DESC}*${weightedEquationStr}\n\n` : '') +
     `Estimated Points (Smoothing): \`\`${smoothingEstimate}` +
     ` ± ${smoothingError}\`\`\n` +
-    ((detailed) ? `*${COMMAND.CONSTANTS.SMOOTH_PRED_DESC}*\n` : '')
+    ((detailed) ? `*${COMMAND.CONSTANTS.SMOOTH_PRED_DESC}*\n\n` : '') +
+    `Estimated Points (Normal Dist): \`\`${NormalEstimate.toLocaleString()}\`\`\n` +
+    ((detailed) ? `*${COMMAND.CONSTANTS.NORM_PRED_DESC}*${regEquationStr}\n` : '')
     });
 
 
@@ -356,6 +402,37 @@ const generateCutoff = async ({ interaction, event,
   await interaction.editReply({
     embeds: [cutoffEmbed]
   });
+
+  if (tier > 100) {
+    await interaction.followUp('# WARNING The data used for this prediction is predicted through a machine learning model and may not be accurate. Use at your own risk.');
+  }
+};
+
+const getWorldLink = (eventId) => {
+  let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
+  worldLink = worldLink.filter((x) => x.eventId === eventId);
+
+  let idx = -1;
+  let currentTime = Date.now();
+
+  worldLink.forEach((x, i) => {
+    if (x.chapterEndAt >= currentTime && x.chapterStartAt <= currentTime) {
+      idx = i;
+    }
+  });
+
+  if (idx == -1) {
+    return -1;
+  }
+  else {
+    return worldLink[idx];
+  }
+};
+
+const getCharacterName = (characterId) => {
+  const gameCharacters = JSON.parse(fs.readFileSync('./sekai_master/gameCharacters.json'));
+  const charInfo = gameCharacters[characterId - 1];
+  return `${charInfo.givenName} ${charInfo.firstName}`.trim();
 };
 
 module.exports = {
@@ -398,85 +475,98 @@ module.exports = {
       return;
     }
 
-    discordClient.addSekaiRequest('ranking', {
-      eventId: event.id,
-      targetRank: tier,
-      lowerLimit: 0
-    }, async (response) => {
-      // Check if the response is valid
-      if (!response.rankings) {
-        await interaction.editReply({
-          embeds: [
-            generateEmbed({
-              name: COMMAND.commandName,
-              content: COMMAND.CONSTANTS.NO_RESPONSE_ERR,
-              client: discordClient.client
-            })
-          ]
+    const timestamp = Date.now();
+
+    let detailed = interaction.options.getBoolean('detailed') ?? false;
+    let chapter = interaction.options.getBoolean('chapter') ?? false;
+
+    try {
+      // Use online predicted database
+      if (tier > 100) {
+        let fp = `http://localhost:8080/predictData/${event.id}/${tier}.csv`;
+        let cutoffs = await new Promise((resolve, reject) => {
+          http.get(fp, (res) => {
+            let data = '';
+            res.on('data', (chunk) => {
+              data += chunk;
+            });
+            res.on('end', () => {
+              resolve(data);
+            });
+          }).on('error', (err) => {
+            reject(err);
+          });
         });
-        return;
-      } else if (response.rankings.length === 0) {
-        await interaction.editReply({
-          embeds: [
-            generateEmbed({
-              name: COMMAND.commandName,
-              content: COMMAND.CONSTANTS.BAD_INPUT_ERROR,
-              client: discordClient.client
-            })
-          ]
+        parse(cutoffs, {
+          skip_empty_lines: true
+        }, (err, output) => {
+          cutoffs = output;
+          let rankData = cutoffs.map(x => ({ timestamp: parseInt(x[0].trim()), score: parseInt(x[1].trim()) }));
+          generateCutoff({
+            interaction: interaction,
+            event: event,
+            timestamp: timestamp,
+            tier: tier,
+            score: rankData[rankData.length - 1].score,
+            rankData: rankData,
+            detailed: detailed,
+            discordClient: discordClient
+          });
         });
-        return;
       }
+      // Otherwise use internal data 
+      else if (chapter && event.eventType === 'world_bloom') {
 
-      const timestamp = Date.now();
-      const score = response.rankings[0].score;
+        console.log(`Getting World Link for ${event.id}`);
 
-      let paramCount = interaction.options._hoistedOptions.length;
-      let detailed = (paramCount === 1) ? false : interaction.options._hoistedOptions[1].value;
+        let world_link = getWorldLink(event.id);
+        let cutoffs = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
+          'WHERE (EventID=@eventID AND Tier=@tier)').all({
+            eventID: parseInt(`${event.id}${world_link.gameCharacterId}`),
+            tier: tier
+          });
+        let rankData = cutoffs.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
 
-      try {
+        console.log(rankData.length);
 
+        world_link.startAt = world_link.chapterStartAt;
+        world_link.id = event.id;
+        world_link.name = `${getCharacterName(world_link.gameCharacterId)}'s Chapter`;
+        generateCutoff({
+          interaction: interaction,
+          event: world_link,
+          timestamp: timestamp,
+          tier: tier,
+          score: rankData[rankData.length - 1].score,
+          rankData: rankData,
+          detailed: detailed,
+          discordClient: discordClient,
+        });
+      } else {
         let cutoffs = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
           'WHERE (EventID=@eventID AND Tier=@tier)').all({
             eventID: event.id,
             tier: tier
           });
         let rankData = cutoffs.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-        console.log('Data Read, Generating Internal cutoff');
         generateCutoff({
           interaction: interaction,
           event: event,
           timestamp: timestamp,
           tier: tier,
-          score: score,
+          score: rankData[rankData.length - 1].score,
           rankData: rankData,
           detailed: detailed,
           discordClient: discordClient
         });
-
-      } catch (err) {
-        console.log(err);
-        discordClient.logger.log({
-          level: 'error',
-          timestamp: Date.now(),
-          message: `Error parsing JSON data from cutoff: ${err}`
-        });
       }
-    }, async (err) => {
-      // Log the error
+    } catch (err) {
+      console.log(err);
       discordClient.logger.log({
         level: 'error',
         timestamp: Date.now(),
-        message: err.toString()
+        message: `Error parsing JSON data from cutoff: ${err}`
       });
-
-      await interaction.editReply({
-        embeds: [generateEmbed({
-          name: COMMAND.INFO.name,
-          content: { type: 'error', message: err.toString() },
-          client: discordClient.client
-        })]
-      });
-    });
+    }
   }
 };

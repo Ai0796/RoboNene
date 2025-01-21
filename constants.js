@@ -32,11 +32,17 @@ module.exports = {
   'RATE_LIMIT': 120,
 
   //Amount of Time between Cutoff data in milliseconds
-  'CUTOFF_INTERVAL': 90000,
+  'CUTOFF_INTERVAL': 60000,
+
+  //Amount of Time between Tracking requests in milliseconds
+  'TRACK_INTERVAL': 15000,
 
   //Amount of Time between Twitter calls
-  'TWITTER_INTERVAL': 60000,
+  'TWITTER_INTERVAL': 120000,
 
   // Source of game data
   'DIR_DATA': './sekai_master',
+
+  // Event ID of last event access
+  'LOCKED_EVENT_ID': 84,
 };

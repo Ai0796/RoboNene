@@ -10,7 +10,7 @@ const fs = require('fs');
 
 // The location we pull from and data modules we pull 
 const GAME_CONSTANTS = {
-    'HOST': 'minio.dnaroma.eu',
+    'HOST': 'storage.sekai.best',
     'PATH': '/sekai-best-assets/',
     'JSON': [
         'music_metas'

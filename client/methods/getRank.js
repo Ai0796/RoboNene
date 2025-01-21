@@ -77,6 +77,47 @@ const getRank = async (commandName, interaction, discordClient, requestParams) =
     return;
   }
 
+  
+  // Check if 15 minutes have passed since the event ended
+  if (Date.now() - event.aggregateAt > 0 && Date.now() - event.aggregateAt < 60 * 15 * 1000) {
+    let id = discordClient.getId(interaction.user.id);
+
+    if (id == -1) {
+      interaction.editReply({ content: 'Discord User not found (are you sure that account is linked?)' });
+      return;
+    }
+
+    let data = discordClient.cutoffdb.prepare('SELECT * FROM users ' +
+      'WHERE (id=@id AND EventID=@eventID)').all({
+        id: id,
+        eventID: event.id
+      });
+    if (data.length > 0)
+    {
+      let finalScore = data[data.length-1].Score;
+      let finalRank = data[data.length-1].Tier;
+      let finalTimestamp = data[data.length-1].Timestamp;
+
+      await interaction.editReply({
+        embeds: [
+          generateEmbed({
+            name: commandName,
+            content: {
+              type: 'Success',
+              message: `Event Ended, using last known data\n\n**T${finalRank}** - **${finalScore}** points, <t:${Math.floor(finalTimestamp/1000)}:T>`
+            },
+            client: discordClient.client
+          })
+        ]
+      });
+
+      return;
+    }
+    else {
+      interaction.editReply({ content: 'Discord User found but no data logged (have you recently linked or event ended?)' });
+    }
+  }
+
   discordClient.addSekaiRequest('ranking', {
     eventId: event.id,
     ...requestParams

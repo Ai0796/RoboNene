@@ -4,14 +4,25 @@
  */
 
 const { EmbedBuilder } = require('discord.js');
-const { NENE_COLOR, FOOTER } = require('../../constants');
+const { NENE_COLOR, FOOTER, LOCKED_EVENT_ID } = require('../../constants');
 const https = require('https');
 
 const COMMAND = require('../command_data/graph');
 
 const generateSlashCommand = require('../methods/generateSlashCommand');
-const generateEmbed = require('../methods/generateEmbed'); 
+const generateEmbed = require('../methods/generateEmbed');
 const getEventData = require('../methods/getEventData');
+
+const colors = [
+  '#FF77217F',
+  '#0077DD7F',
+  '#00BBDC7F',
+  '#FF679A7F',
+  '#FFCDAC7F',
+  '#99CDFF7F',
+  '#FFA9CC7F',
+  '#9AEEDE7F',
+];
 
 /**
  * Create a graph embed to be sent to the discord interaction
@@ -23,12 +34,12 @@ const getEventData = require('../methods/getEventData');
 const generateGraphEmbed = (graphUrl, tier, discordClient) => {
   const graphEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle(`${tier}`)
-    .setDescription(`**Requested:** <t:${Math.floor(Date.now()/1000)}:R>`)
+    .setTitle(`${tier} Nyaa~`)
+    .setDescription(`**Requested:** <t:${Math.floor(Date.now() / 1000)}:R>`)
     .setThumbnail(discordClient.client.user.displayAvatarURL())
     .setImage(graphUrl)
     .setTimestamp()
-    .setFooter({ text: FOOTER, iconURL: discordClient.client.user.displayAvatarURL()});
+    .setFooter({ text: FOOTER, iconURL: discordClient.client.user.displayAvatarURL() });
 
   return graphEmbed;
 };
@@ -39,7 +50,7 @@ const generateGraphEmbed = (graphUrl, tier, discordClient) => {
  * @returns 
  */
 function ensureASCII(str) {
-  return str.replace(/[^a-z0-9&]/gi, ' ');
+  return str.replace(/[^ -~]/gi, ' ');
 }
 
 /**
@@ -50,13 +61,13 @@ function ensureASCII(str) {
  * @param {DiscordClient} client we are using to interact with discord
  * @error Status code of the http request
  */
-const postQuickChart = async (interaction, tier, rankData, discordClient) => {
-  if (!rankData) {
+const postQuickChart = async (interaction, tier, rankDatas, events, discordClient) => {
+  if (!rankDatas) {
     await interaction.editReply({
       embeds: [
         generateEmbed({
-          name: COMMAND.INFO.name, 
-          content: COMMAND.CONSTANTS.NO_DATA_ERR, 
+          name: COMMAND.INFO.name,
+          content: COMMAND.CONSTANTS.NO_DATA_ERR,
           client: discordClient.client
         })
       ]
@@ -64,28 +75,58 @@ const postQuickChart = async (interaction, tier, rankData, discordClient) => {
     return;
   }
 
-  let graphData = [];
-  const event = discordClient.getCurrentEvent();
   tier = ensureASCII(tier);
-
-  rankData.forEach(point => {
-    graphData.push({
-      x: point.timestamp - event.startAt,
-      y: point.score
+  for (let i = 0; i < rankDatas.length; i++) {
+    rankDatas[i] = rankDatas[i].filter(point => point.timestamp < events[i].aggregateAt + 60 * 15 * 1000);
+  }
+  rankDatas = rankDatas.map((rankData, i) => {
+    return rankData.map(point => {
+      return {
+        x: point.timestamp - events[i].startAt,
+        y: point.score
+      };
     });
+  });
+
+  let totalEvents = rankDatas.length;
+
+  var usableColors;
+
+  if (rankDatas.length >= 4) {
+    usableColors = colors;
+  } else {
+    usableColors = colors.slice(2, rankDatas.length + 2);
+  }
+
+  let colorLen = usableColors.length;
+
+  let graphData = rankDatas.map((rankData, i) => {
+    return {
+      'type': 'line',
+      'borderWidth': 2,
+      'label': ensureASCII(`${events[i].id}: ${events[i].name} ${tier}`),
+      'fill': true,
+      'spanGaps': false,
+      'pointRadius': 0,
+      // 'borderDash': [
+      //   2,
+      //   totalEvents
+      // ],
+      // 'borderDashOffset': i,
+      'borderColor': (i > colorLen - 1) ? usableColors[i % colorLen] : usableColors[i],
+      'backgroundColor': (i > colorLen - 1) ? usableColors[i % colorLen] : usableColors[i],
+      'order': totalEvents - i,
+      'data': rankData
+    };
   });
 
   let postData = JSON.stringify({
     'backgroundColor': '#FFFFFF',
     'format': 'png',
     'chart': {
-      'type': 'line', 
+      'type': 'line',
       'data': {
-        'datasets': [{
-          'label': `${tier}`, 
-          'fill': false,
-          'data': graphData
-        }]
+        'datasets': graphData
       },
       'options': {
         'scales': {
@@ -127,8 +168,8 @@ const postQuickChart = async (interaction, tier, rankData, discordClient) => {
       if (res.statusCode === 200) {
         try {
           console.log(JSON.stringify(JSON.parse(json)));
-          await interaction.editReply({ 
-            embeds: [generateGraphEmbed(JSON.parse(json).url, tier, discordClient)]
+          await interaction.editReply({
+            embeds: [generateGraphEmbed(JSON.parse(json).url + '?width=1000&height=600', tier, discordClient)]
           });
         } catch (err) {
           // Error parsing JSON: ${err}`
@@ -136,17 +177,17 @@ const postQuickChart = async (interaction, tier, rankData, discordClient) => {
         }
       } else {
         // Error retrieving via HTTPS. Status: ${res.statusCode}
-        console.log(`Error retrieving via HTTPS ${res.statusCode}`);
+        console.log(`Error retrieving via HTTPS ${res.statusCode} ${json}`);
       }
     });
-  }).on('error', () => {});
+  }).on('error', () => { });
 
   req.write(postData);
   req.end();
 };
 
 async function noDataErrorMessage(interaction, discordClient) {
-  let reply = 'Please input a tier in the range 1-100 or input 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, or 50000';
+  let reply = 'Please input a tier in the range 1-100';
   let title = 'Tier Not Found';
 
   await interaction.editReply({
@@ -164,11 +205,33 @@ async function noDataErrorMessage(interaction, discordClient) {
   return;
 }
 
-async function sendHistoricalTierRequest(eventId, eventName, eventData, tier, interaction, discordClient) {
-  
+function getUserData(userId, event, discordClient) {
+  let data = discordClient.cutoffdb.prepare('SELECT * FROM users ' +
+    'WHERE (id=@id AND EventID=@eventID)').all({
+      id: userId,
+      eventID: event.id
+    });
+  data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+  data.unshift({ timestamp: event.startAt, score: 0 });
+  return data;
+}
+
+function getTierData(tier, event, discordClient) {
+  let data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
+    'WHERE (Tier=@tier AND EventID=@eventID)').all({
+      tier: tier,
+      eventID: event.id
+    });
+  data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+  data.unshift({ timestamp: event.startAt, score: 0 });
+  return data;
+}
+
+function getTierPlayerData(tier, event, discordClient) {
+
   let data = discordClient.cutoffdb.prepare('SELECT ID, Score FROM cutoffs ' +
     'WHERE (EventID=@eventID AND Tier=@tier) ORDER BY TIMESTAMP DESC').all({
-      eventID: eventData.id,
+      eventID: event.id,
       tier: tier
     });
 
@@ -177,68 +240,23 @@ async function sendHistoricalTierRequest(eventId, eventName, eventData, tier, in
     data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
       'WHERE (ID=@id AND EventID=@eventID)').all({
         id: userId,
-        eventID: eventId
+        eventID: event.id
       });
     if (data.length > 0) {
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-      rankData.unshift({ timestamp: eventData.startAt, score: 0 });
-      rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
-      postQuickChart(interaction, `${eventName} T${tier} Cutoffs`, rankData, discordClient);
-    } else {
-      noDataErrorMessage(interaction, discordClient);
+      rankData.unshift({ timestamp: event.startAt, score: 0 });
+
+      return rankData;
     }
-  } else {
-    noDataErrorMessage(interaction, discordClient);
   }
-}
 
-async function sendTierRequest(eventId, eventName, eventData, tier, interaction, discordClient) {
-  discordClient.addPrioritySekaiRequest('ranking', {
-    eventId: eventId,
-    targetRank: tier,
-    lowerLimit: 0
-  }, async (response) => {
-
-    let userId = response['rankings'][0]['userId'];//Get the last ID in the list
-    let data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-      'WHERE (ID=@id AND EventID=@eventID)').all({
-        id: userId,
-        eventID: eventId
-      });
-    if (data.length > 0) {
-      let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-      rankData.unshift({ timestamp: eventData.startAt, score: 0 });
-      rankData.push({ timestamp: Date.now(), score: response['rankings'][0]['score'] });
-      rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
-      postQuickChart(interaction, `${eventName} T${tier} ${response['rankings'][0]['name']} Cutoffs`, rankData, discordClient);
-    } else {
-      noDataErrorMessage(interaction, discordClient);
-    }
-  }, (err) => {
-    console.log(err);
-  });
-}
-
-async function sendGraphByTierRequest(eventId, eventName, eventData, tier, interaction, discordClient) {
-  let data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-    'WHERE (Tier=@tier AND EventID=@eventID)').all({
-      tier: tier,
-      eventID: eventId
-    });
-  if (data.length > 0) {
-    let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-    rankData.unshift({ timestamp: eventData.startAt, score: 0 });
-    rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
-    postQuickChart(interaction, `${eventName} T${tier} Cutoffs`, rankData, discordClient);
-  } else {
-    noDataErrorMessage(interaction, discordClient);
-  }
+  return [];
 }
 
 module.exports = {
   ...COMMAND.INFO,
   data: generateSlashCommand(COMMAND.INFO),
-  
+
   async execute(interaction, discordClient) {
     await interaction.deferReply({
       ephemeral: COMMAND.INFO.ephemeral
@@ -248,13 +266,45 @@ module.exports = {
 
     const tier = interaction.options.getInteger('tier');
     const user = interaction.options.getMember('user');
-    const eventid = interaction.options.getInteger('event') || event.id;
+    let events = interaction.options.getString('event') || [event];
     const graphTier = interaction.options.getBoolean('by_tier') || false;
+    let chapter = interaction.options.getString('chapter') ?? null;
 
-    event = getEventData(eventid);
-    const eventName = event.name;
+    var splitEvents;
 
-    if (event.id === -1) {
+    if (typeof (events) === 'string') {
+      splitEvents = events.split(',').map(x => getEventData(parseInt(x)));
+    } else {
+      splitEvents = events;
+    }
+
+    if (typeof (chapter) === 'string') {
+      chapter = chapter.split(',').map(x => parseInt(x));
+    }
+
+    events = [];
+    
+    splitEvents.forEach(event => {
+      if (chapter !== null && event.eventType === 'world_bloom') {
+        let world_blooms = discordClient.getAllWorldLinkChapters(event.id);
+
+        chapter.forEach(chapterId => {
+          let world_link = world_blooms.find(x => x.chapterNo === chapterId);
+          if (!world_link) {
+            return;
+          }
+          world_link.startAt = world_link.chapterStartAt;
+          world_link.aggregateAt = world_link.chapterEndAt;
+          world_link.id = parseInt(`${event.id}${world_link.gameCharacterId}`);
+          world_link.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
+          events.push(world_link);
+        });
+      } else {
+        events.push(event);
+      }
+    });
+
+    if (events.filter(x => x.id > 0).length === 0) {
       await interaction.editReply({
         embeds: [
           generateEmbed({
@@ -267,25 +317,31 @@ module.exports = {
       return;
     }
 
-    if(tier)
-    {
-      var data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-        'WHERE (Tier=@tier AND EventID=@eventID)').all({
-          tier: tier,
-          eventID: event.id
-        });
-      if (data.length == 0) {
-        noDataErrorMessage(interaction, discordClient);
-        return;
-      } else if (graphTier) {
-        sendGraphByTierRequest(event.id, eventName, event, tier, interaction, discordClient);
-      } else if (event.id < discordClient.getCurrentEvent().id) {
-        sendHistoricalTierRequest(event.id, eventName, event, tier, interaction, discordClient);
+    if (tier) {
+      if (graphTier) {
+        let data = events.map(event => getTierData(tier, event, discordClient));
+        data = data.filter(x => x.length > 0);
+        if (data.length === 0) {
+          noDataErrorMessage(interaction, discordClient);
+          return;
+        }
+        postQuickChart(interaction, `T${tier} Line Graph`, data, events, discordClient);
       } else {
-        sendTierRequest(event.id, eventName, event, tier, interaction, discordClient);
+        let data = events.map(event => getTierPlayerData(tier, event, discordClient));
+        data = data.filter(x => x.length > 0);
+        if (data.length === 0) {
+          noDataErrorMessage(interaction, discordClient);
+          return;
+        }
+        postQuickChart(interaction, `T${tier} Player Line Graph`, data, events, discordClient);
       }
     } else if (user) {
       try {
+        if (event.id > LOCKED_EVENT_ID) {
+          interaction.editReply({ content: `Event ID is past ${LOCKED_EVENT_ID}, User data is unable to be stored after this event and cannot be displayed` });
+          return;
+        }
+
         let id = discordClient.getId(user.id);
 
         if (id == -1) {
@@ -293,17 +349,11 @@ module.exports = {
           return;
         }
 
-        let data = discordClient.cutoffdb.prepare('SELECT * FROM users ' +
-          'WHERE (id=@id AND EventID=@eventID)').all({
-            id: id,
-            eventID: event.id
-          });
-        if (data.length>0)
-        {
+        let data = events.map(event => getUserData(id, event.id, discordClient));
+        data = data.filter(x => x.length > 0);
+        if (data.length > 0) {
           let name = user.displayName;
-          let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-          rankData.unshift({ timestamp: event.startAt, score: 0 });
-          postQuickChart(interaction, `${eventName} ${name} Event Points`, rankData, discordClient);
+          postQuickChart(interaction, `${event.name} ${name} Event Points`, data, events, discordClient);
         }
         else {
           interaction.editReply({ content: 'Discord User found but no data logged (have you recently linked or event ended?)' });
@@ -312,5 +362,24 @@ module.exports = {
         // Error parsing JSON: ${err}`
       }
     }
+  },
+
+  async autocomplete(interaction, discordClient) {
+    
+    let world_blooms = discordClient.getAllWorldLinkChapters();
+
+    let options = world_blooms.map((chapter, i) => {
+      return {
+        name: chapter.character,
+        value: `${chapter.chapterNo}`,
+      };
+    });
+
+    options.push({
+      name: 'All Chapters',
+      value: [...new Set(options.map(x => x.value))].join(','),
+    });
+
+    await interaction.respond(options);
   }
 };

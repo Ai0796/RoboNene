@@ -11,7 +11,8 @@ const palatteChoices = [
   ['Ankoha', 2],
   ['Cinema', 3],
   ['Shinonome', 4],
-  ['Miracle Paint', 5]
+  ['Miracle Paint', 5],
+  ['Emu', 6]
 ];
 
 module.exports = {
@@ -63,6 +64,13 @@ module.exports = {
             'name': 'bypoints',
             'required': false,
             'description': 'Show the points gained instead of games played'
+          },
+          {
+            'type': 'integer',
+            'name': 'chapter',
+            'required': false,
+            'description': 'The chapter to display for (World Link Only)',
+            'autocomplete': true
           }
         ]
       },

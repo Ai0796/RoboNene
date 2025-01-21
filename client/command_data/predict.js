@@ -1,15 +1,15 @@
 /**
- * @fileoverview Command Data & Constants Related to the /cutoff command
+ * @fileoverview Command Data & Constants Related to the /predict command
  * These constants are used to dynamically generate a slash command on discord.
- * This File also contains the constants and error values used exclusively in the /cutoff command.
+ * This File also contains the constants and error values used exclusively in the /predict command.
  * @author Potor10
  */
 
 module.exports = {
   'INFO': {
-    'name': 'cutoff',
-    'utilization': '/cutoff',
-    'description': 'Obtain detailed information about the the cutoff',
+    'name': 'predict',
+    'utilization': '/predict',
+    'description': 'Given the current value runs a prediction on the cutoff for the specified tier.',
     'ephemeral': false,
     'params': [
       {
@@ -18,22 +18,35 @@ module.exports = {
         'required': true,
         'description': 'The cutoff tier specified',
         'choices': [
-          ['T1', 1],
-          ['T2', 2],
-          ['T3', 3],
           ['T10', 10],
           ['T20', 20],
           ['T30', 30],
           ['T40', 40],
           ['T50', 50],
-          ['T100', 100]
+          ['T100', 100],
+          ['T200', 200],
+          ['T300', 300],
+          ['T400', 400],
+          ['T500', 500],
+          ['T1000', 1000],
+          ['T2000', 2000],
+          ['T3000', 3000],
+          ['T4000', 4000],
+          ['T5000', 5000],
+          ['T10000', 10000],
+          ['T20000', 20000],
+          ['T30000', 30000],
+          ['T40000', 40000],
+          ['T50000', 50000],
+          ['T100000', 100000],
         ]
       },
       {
-        'type': 'boolean',
-        'name': 'detailed',
-        'required': false,
-        'description': 'Show extra detailed cutoff information'
+        'type': 'integer',
+        'name': 'currentpoints',
+        'required': true,
+        'description': 'The current points the cutoff is at',
+        'minValue': 0
       },
       {
         'type': 'boolean',
@@ -80,7 +93,6 @@ module.exports = {
     'PRED_DESC': 'Fits data into a least squares regression line to generate a prediction.',
     'WEIGHT_PRED_DESC': 'Uses weighted model that squares time for each data point. This model will tend to predict with more recent data',
     'SMOOTH_PRED_DESC': 'Uses a weighted average of estimations from previous models. Generally, smoothed estimates are more resilient to sudden changes in point gain.',
-    'NORM_PRED_DESC': 'Uses a normal distribution to generate a prediction. This model will predict with more recent data',
 
     'NAIVE_DESC': 'Current Score + (Average Points Per Hour \\* Hours Left)',
     'NAIVE_LAST_HR_DESC': 'Current Score + (Average Points Per Hour [Last Hour] \\* Hours Left)'

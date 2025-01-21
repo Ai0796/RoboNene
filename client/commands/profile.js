@@ -55,7 +55,7 @@ async function getImage(assetBundleName, rarityType) {
   
     } else {
   
-      let normalImage = `https://storage.sekai.best/sekai-assets/character/member_cutout/${assetBundleName}_rip/normal.webp`;
+      let normalImage = `https://storage.sekai.best/sekai-jp-assets/character/member/${assetBundleName}_rip/card_normal.webp`;
       await downloadImage(normalImage, `${folderLocation}/${assetBundleName}_normal.webp`);
       images.normal = sharp(`${folderLocation}/${assetBundleName}_normal.webp`);
     }
@@ -71,7 +71,7 @@ async function getImage(assetBundleName, rarityType) {
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       } else {
   
-        let trainedImage = `https://storage.sekai.best/sekai-assets/character/member_cutout/${assetBundleName}_rip/after_training.webp`;
+        let trainedImage = `https://storage.sekai.best/sekai-jp-assets/character/member/${assetBundleName}_rip/card_after_training.webp`;
         await downloadImage(trainedImage, `${folderLocation}/${assetBundleName}_after_training.webp`);
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       }
@@ -121,8 +121,8 @@ async function overlayCard(image, rarityType, attributeType, mastery, level, tra
     .toBuffer();
   const levelBorder = await sharp('./gacha/levelBorder.png')
     .toBuffer();
-
   image = await image
+    .resize({ width: 600, height: 576 , fit: 'fill' })
     .extract({ left: 135, top: 0, width: 330, height: 520 });
   let frame = await sharp(framePath)
     .resize(330, 520)
@@ -206,7 +206,7 @@ const generateProfileEmbed = async (discordClient, userId, data, private) => {
   const gameCharacters = JSON.parse(fs.readFileSync('./sekai_master/gameCharacters.json'));
   const cards = JSON.parse(fs.readFileSync('./sekai_master/cards.json'));
 
-  const leaderCardId = data.userDecks[0].leader;
+  const leaderCardId = data.userCards[0].cardId;
   let leader = {};
   
   for(const idx in data.userCards) {
@@ -244,46 +244,43 @@ const generateProfileEmbed = async (discordClient, userId, data, private) => {
   let teamText = [];
 
   // Generate Text For Profile's Teams
-  for (const pos of Object.keys(data.userDecks[0])) {
-    if (pos !== 'leader' && pos !== 'subLeader') {
-      let positionId = data.userDecks[0][pos];
 
-      for (const card of data.userCards) {
-        if (card.cardId === positionId) {
-          const cardInfo = binarySearch(positionId, 'id', cards);
-          const charInfo = gameCharacters[cardInfo.characterId-1];
-          teamText += `${cardRarities[cardInfo.cardRarityType]}`;
-          teamText += ' ';
-          teamText += `__${cardInfo.prefix} ${charInfo.givenName} ${charInfo.firstName}__\n`;
-          
-          let cardData = teamData.cards.filter((c) => c.cardId === card.cardId)[0];
-          teamText += '**Talent:**\n';
-          teamText += `Base: \`${cardData.baseTalent.toLocaleString()}\`\n`;
-          teamText += `Character Deco: \`${cardData.characterDecoTalent.toFixed(0).toLocaleString()}\`\n`;
-          teamText += `Area Deco: \`${cardData.areaDecoTalent.toFixed(0).toLocaleString()}\`\n`;
-          teamText += `Character Rank: \`${cardData.CRTalent.toFixed(0).toLocaleString()}\`\n`;
-          teamText += `Total: \`${cardData.talent.toFixed(0).toLocaleString()}\`\n`;
-          teamText += '\n';
+  let order = [
+    data.userDeck.member1,
+    data.userDeck.member2,
+    data.userDeck.member3,
+    data.userDeck.member4,
+    data.userDeck.member5,
+  ];
 
-          let image = await getImage(cardInfo.assetbundleName, cardInfo.cardRarityType);
-          var imageOverlayed;
 
-          if (specialTrainingPossible.includes(cardInfo.cardRarityType)) {
+  for (const id of order) {
+    const cardInfo = binarySearch(id, 'id', cards);
+    const card = data.userCards.filter((c) => c.cardId === id)[0];
+    const charInfo = gameCharacters[cardInfo.characterId-1];
+    teamText += `${cardRarities[cardInfo.cardRarityType]}`;
+    teamText += ' ';
+    teamText += `__${cardInfo.prefix} ${charInfo.givenName} ${charInfo.firstName}__\n`;
+    
+    let cardData = teamData.cards.filter((c) => c.cardId === id)[0];
+    teamText += '**Talent:**\n';
+    teamText += `Base: \`${cardData.baseTalent.toLocaleString()}\`\n`;
+    teamText += `Character Deco: \`${cardData.characterDecoTalent.toFixed(0).toLocaleString()}\`\n`;
+    teamText += `Area Deco: \`${cardData.areaDecoTalent.toFixed(0).toLocaleString()}\`\n`;
+    teamText += `Character Rank: \`${cardData.CRTalent.toFixed(0).toLocaleString()}\`\n`;
+    teamText += `Total: \`${cardData.talent.toFixed(0).toLocaleString()}\`\n`;
+    teamText += '\n';
 
-            if (card.specialTrainingStatus === 'done') {
-              imageOverlayed = await overlayCard(image.trained, cardInfo.cardRarityType, cardInfo.attr, card.masterRank, card.level, true);
-            } else {
-              imageOverlayed = await overlayCard(image.normal, cardInfo.cardRarityType, cardInfo.attr, card.masterRank, card.level, false);
-            }
+    let image = await getImage(cardInfo.assetbundleName, cardInfo.cardRarityType);
+    var imageOverlayed;
 
-          } else {
-            imageOverlayed = await overlayCard(image.normal, cardInfo.cardRarityType, cardInfo.attr, card.masterRank, card.level, false);
-          }
-
-          cardImages.push(imageOverlayed);
-        }
-      }
+    if (specialTrainingPossible.includes(cardInfo.cardRarityType) || card.defaultImage != 'original') {
+      imageOverlayed = await overlayCard(image.trained, cardInfo.cardRarityType, cardInfo.attr, card.masterRank, card.level, false);
+    } else {
+      imageOverlayed = await overlayCard(image.normal, cardInfo.cardRarityType, cardInfo.attr, card.masterRank, card.level, false);
     }
+
+    cardImages.push(imageOverlayed);
   }
 
   let teamImage = await overlayCards(cardImages);
@@ -370,18 +367,19 @@ const generateProfileEmbed = async (discordClient, userId, data, private) => {
   // Create the Embed for the profile using the pregenerated values
   const profileEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle(`${data.user.userGamedata.name}'s Profile`)
+    .setTitle(`${data.user.name}'s Profile Nyaa~d`)
     .setDescription(`**Requested:** <t:${Math.floor(Date.now()/1000)}:R>`)
     .setAuthor({ 
-      name: `${data.user.userGamedata.name}`, 
+      name: `${data.user.name}`, 
       iconURL: `${leaderThumbURL}` 
     })
     .setThumbnail(leaderThumbURL)
     .addFields(
-      { name: 'Name', value: `${data.user.userGamedata.name}`, inline: true },
-      { name: 'Rank', value: `${data.user.userGamedata.rank}`, inline: true },
+      { name: 'Name', value: `${data.user.name}`, inline: true },
+      { name: 'Rank', value: `${data.user.rank}`, inline: true },
+      { name: 'Warning', value: 'Due to API changes, estimated individual card talent assumes both side stories read and level 15 area items', inline: true },
       { name: 'Cards', value: `${teamText}` },
-      { name: 'Estimated Talent', value: `${teamData.talent.toFixed(0)}`, inline: true },
+      { name: 'Talent', value: `${data.totalPower.totalPower}`, inline: true },
       { name: 'Estimated Event Bonus', value: `${teamData.eventBonusText}`, inline: true },
       { name: 'Description', value: `${data.userProfile.word}\u200b` },
       { name: 'Twitter', value: `@${data.userProfile.twitterId}\u200b` },
@@ -390,37 +388,6 @@ const generateProfileEmbed = async (discordClient, userId, data, private) => {
     .setImage('attachment://team.png')
     .setTimestamp()
     .setFooter({text: FOOTER, iconURL: discordClient.client.user.displayAvatarURL()});
-
-  // Hidden Because Of Sensitive Information
-  if (!private) {
-    let areaTexts = {};
-    data.userAreaItems.forEach((item) => {
-      const itemInfo = areaItems[item.areaItemId-1];
-      let itemLevel = {};
-      for(const idx in areaItemLevels) {
-        if (areaItemLevels[idx].areaItemId === item.areaItemId &&
-          areaItemLevels[idx].level === item.level) {
-          itemLevel = areaItemLevels[idx];
-          break;
-        }
-      }
-
-      if (!(itemInfo.areaId in areaTexts)) {
-        areaTexts[itemInfo.areaId] = '';
-      }
-
-      let itemText = (itemLevel.sentence).replace(/<[\s\S]*?>/g, '**');
-
-      areaTexts[itemInfo.areaId] += `__${itemInfo.name}__ \`\`Lv. ${item.level}\`\`\n`;
-      areaTexts[itemInfo.areaId] += `${itemText}\n`;
-    });
-
-    Object.keys(areaTexts).forEach((areaId) => {
-      const areaInfo = binarySearch(areaId, 'id', areas);
-
-      profileEmbed.addField(areaInfo.name, areaTexts[areaId]);
-    });
-  }
   
   return {'embed': profileEmbed, 'file': file}; 
 };

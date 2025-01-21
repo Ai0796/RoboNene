@@ -6,10 +6,24 @@ const fs = require('fs');
 
 const COMMAND = require('../command_data/track');
 
+const { PermissionsBitField } = require('discord.js');
+
 const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 
 const fp = './JSONs/track.json';
+const userFp = './JSONs/userTrack.json';
+
+const userTrackFile = getUserTrackFile();
+
+function checkIsAdmin(msg) {
+    try {
+        return msg.member.permissionsIn(msg.channel).has('Administrator');
+    }
+    catch {
+        return false;
+    }
+}
 
 function addTrack(tier, score, mention, channel) {
     tier = tier.toString();
@@ -42,6 +56,203 @@ function addTrack(tier, score, mention, channel) {
         });
     } catch (e) {
         console.log('Error occured while writing Tracking: ', e);
+    }
+}
+
+function getUserTrackFile() {
+    try {
+        if (!fs.existsSync(userFp)) {
+            return [];
+        }
+        else {
+            let data = JSON.parse(fs.readFileSync(userFp, 'utf8'));
+            if (Array.isArray(data)) {
+                return data;
+            } else {
+                return [];
+            }
+        }
+    } catch (e) {
+        console.log('Error occured while reading user tracking: ', e);
+    }
+}
+
+function saveUserTrackFile(object) {
+    fs.writeFile(userFp, JSON.stringify(object), err => {
+        if (err) {
+            console.log('Error writing user tracking', err);
+        } else {
+            console.log('Wrote user tracking Successfully');
+        }
+    });
+}
+
+async function sendUserTrack(discordClient, interaction) {
+    try {
+        let serverid = interaction.guild.id;
+        
+        let isAdmin = checkIsAdmin(interaction.member);
+        let userId = interaction.member.user.id;
+        let message = '';
+        let count = 0;
+        userTrackFile.forEach((trackObject) => {
+            if (trackObject.serverid == serverid && (isAdmin || trackObject.userId == userId)) {
+                message += `\`Tracked User ${++count}\`\n${formatTrackMessage(trackObject)}\n`;
+            }
+        });
+        if (message === '') {
+            message = 'No trackings found';
+        }
+        await interaction.editReply({
+            embeds: [
+                generateEmbed({
+                    name: COMMAND.INFO.name,
+                    content: {
+                        type: 'Success',
+                        message: message
+                    },
+                    client: discordClient.client
+                })
+            ]
+        });
+    } catch (e) {
+        console.log('Error occured while sending user tracking: ', e);
+    }
+}
+
+function formatTrackMessage(trackObject) {
+    let settingsText = '';
+
+    settingsText += `Added tracking for ${trackObject.name} ${trackObject.currentTier}\n`;
+
+    if (trackObject.cutoff) {
+        settingsText += `Cutoff: ${trackObject.cutoff.toLocaleString()}\n`;
+    }
+
+    if (trackObject.min > 100) {
+        settingsText += `Min: ${trackObject.min.toLocaleString()}\n`;
+    }
+
+    if (trackObject.max < Number.MAX_SAFE_INTEGER) {
+        settingsText += `Max: ${trackObject.max.toLocaleString()}\n`;
+    }
+
+    return settingsText;
+}
+
+async function addUserTrack(discordClient, interaction) {
+    discordClient.addPrioritySekaiRequest('ranking', {}, async (response) => {
+        try {
+            let tier = interaction.options.getInteger('tier');
+
+            if(tier > 100) {
+                await interaction.editReply({
+                    embeds: [
+                        generateEmbed({
+                            name: COMMAND.INFO.name,
+                            content: COMMAND.CONSTANTS.TIER_ERR,
+                            client: discordClient.client
+                        })
+                    ]
+                });
+                return;
+            }
+            
+            let userId = interaction.member.user.id;
+            let serverid = interaction.guild.id;
+            let name = response['rankings'][tier-1]['name'];
+            let cutoff = interaction.options.getInteger('cutoff') || response['rankings'][tier - 1]['score'] + 1;
+            let min = interaction.options.getInteger('min') || 100;
+            let max = interaction.options.getInteger('max') || Number.MAX_SAFE_INTEGER;
+            let trackId = response['rankings'][tier - 1]['userId'];
+            
+            let trackObject = {
+                userId: userId,
+                currentTier: tier,
+                cutoff: cutoff,
+                min: min,
+                max: max,
+                trackId: trackId,
+                channel: interaction.channelId,
+                lastScore: response['rankings'][tier - 1]['score'],
+                inLeaderboard: true,
+                name: name,
+                serverid: serverid
+            };
+
+            userTrackFile.push(trackObject);
+            let settingsText = formatTrackMessage(trackObject);
+
+            saveUserTrackFile(userTrackFile);
+            await interaction.editReply({
+                embeds: [
+                    generateEmbed({
+                        name: COMMAND.INFO.name,
+                        content: {
+                            type: 'Success',
+                            message: settingsText
+                        },
+                        client: discordClient.client
+                    })
+                ]
+            });
+        } catch (e) {
+            console.log('Error occured while adding user tracking: ', e);
+        }
+    });
+}
+
+async function removeUserTrack(discordClient, interaction) {
+    try {
+        let serverid = interaction.guild.id;
+        let num = interaction.options.getInteger('num');
+        let userId = interaction.member.user.id;
+        let isAdmin = checkIsAdmin(interaction.member);
+        let tracks = [];
+        let index = 0;
+        userTrackFile.forEach(trackObject => {
+            if (trackObject.serverid == serverid && (isAdmin || trackObject.userId == userId)) {
+                tracks.push(index);
+            }
+            index++;
+        });
+
+        if (num < 1 || num > tracks.length) {
+            await interaction.editReply({
+                embeds: [
+                    generateEmbed({
+                        name: COMMAND.INFO.name,
+                        content: {
+                            type: 'Error',
+                            message: `Invalid tracker number. Please use a number between 1 and ${tracks.length}`
+                        },
+                        client: discordClient.client
+                    })
+                ]
+            });
+            return;
+        }
+
+        let track = tracks[num-1];
+        let message = `Removed tracking for:\n${formatTrackMessage(userTrackFile[track])}`;
+        userTrackFile.splice(track - 1, 1);
+        saveUserTrackFile(userTrackFile);
+
+        await interaction.editReply({
+            embeds: [
+                generateEmbed({
+                    name: COMMAND.INFO.name,
+                    content: {
+                        type: 'Success',
+                        message: message
+                    },
+                    client: discordClient.client
+                })
+            ]
+        });
+
+    } catch (e) {
+        console.log('Error occured while removing user tracking: ', e);
     }
 }
 
@@ -85,6 +296,17 @@ module.exports = {
             ephemeral: COMMAND.INFO.ephemeral
         });
 
+        if (interaction.options.getSubcommand() === 'list') {
+            await sendUserTrack(discordClient, interaction);
+            return;
+        } else if (interaction.options.getSubcommand() === 'user') {
+            await addUserTrack(discordClient, interaction);
+            return;
+        } else if (interaction.options.getSubcommand() === 'remove') {
+            await removeUserTrack(discordClient, interaction);
+            return;
+        }
+
         const event = getRankingEvent();
         if (event.id === -1) {
             await interaction.editReply({
@@ -102,9 +324,7 @@ module.exports = {
         const tier = interaction.options.getInteger('tier');
         const cutoff = interaction.options.getInteger('cutoff');
 
-        console.log(cutoff);
-
-        if(tier > 100000) {
+        if(tier > 100) {
             await interaction.editReply({
                 embeds: [
                     generateEmbed({
@@ -124,7 +344,7 @@ module.exports = {
                     lowerLimit: 0
                 }, async (response) => {
                     try {
-                        let score = response['rankings'][0]['score'];
+                        let score = response['rankings'][tier-1]['score'];
                         if(cutoff != undefined){
                             score = cutoff;
                         } else {
@@ -140,6 +360,11 @@ module.exports = {
                             'message': `Starting to track tier ${tier} for ${mention}\nCutoff: ${score.toLocaleString() }`
                         };
 
+                        let warning = {
+                            'type': 'Warning',
+                            'message': 'The bot does not have access to message in this channel'
+                        };
+
                         await interaction.editReply({
                             embeds: [
                                 generateEmbed({
@@ -149,6 +374,19 @@ module.exports = {
                                 })
                             ]
                         });
+
+                        if (!interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.SendMessages)) {
+                            await interaction.followUp({
+                                embeds: [
+                                    generateEmbed({
+                                        name: COMMAND.INFO.name,
+                                        content: warning,
+                                        client: discordClient.client
+                                    })
+                                ],
+                                ephemeral: true
+                            });
+                        }
                     } catch (e) {
                         console.log('Error occured while adding tracking data: ', e);
                     }

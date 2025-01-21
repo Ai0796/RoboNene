@@ -63,13 +63,13 @@ const readCardTalent = (card, cards, cardEpisodes, gameCharacters) => {
     talent += card.specialTrainingStatus === 'done' ? data.specialTrainingPower1BonusFixed
                                                     + data.specialTrainingPower2BonusFixed
                                                     + data.specialTrainingPower3BonusFixed : 0;
-    if(card.episodes[0].scenarioStatus == 'already_read') {
+    if(true) {
         let param = cardEpisodes.find((param) => param.cardId === card.cardId && param.seq === 1);
         talent += param.power1BonusFixed;
         talent += param.power2BonusFixed;
         talent += param.power3BonusFixed;
     }
-    if (card.episodes[1].scenarioStatus == 'already_read') {
+    if (true) {
         let param = cardEpisodes.find((param) => param.cardId === card.cardId && param.seq === 2);
         talent += param.power1BonusFixed;
         talent += param.power2BonusFixed;
@@ -243,22 +243,21 @@ const calculateTeam = (data, eventID) => {
     const eventCards = JSON.parse(fs.readFileSync('./sekai_master/eventCards.json'));
     const episodes = JSON.parse(fs.readFileSync('./sekai_master/cardEpisodes.json'));
     const gameCharacters = JSON.parse(fs.readFileSync('./sekai_master/gameCharacterUnits.json'));
-    let deck = data.userDecks[0];
 
-    var cardIDs = Object.keys(deck).map((key) => {
-        return deck[key];
-    });
-    var cardData = Array();
-
-    for(const idx in data.userCards) {
-        if (cardIDs.includes(data.userCards[idx].cardId)) {
-            cardData.push(data.userCards[idx]);
-        }
-    }
-
+    let order = [
+        data.userDeck.member1,
+        data.userDeck.member2,
+        data.userDeck.member3,
+        data.userDeck.member4,
+        data.userDeck.member5,
+    ];
+    let cardData = order.map(cardId => data.userCards.find(card => card.cardId === cardId)).filter(card => card != undefined);
     cardData = cardData.map(card => readCardTalent(card, cards, episodes, gameCharacters));
 
-    getAreaItemBonus(cardData, data, areaItemLevels);
+    cardData.forEach(card => {
+        card.characterDecoTalent += Math.floor(card.baseTalent * 0.3);
+        card.areaDecoTalent += Math.floor(card.baseTalent * 0.15);
+    });
 
     var group = cardData[0].group;
     var type = cardData[0].type;
@@ -274,16 +273,14 @@ const calculateTeam = (data, eventID) => {
     });
 
     if (group) {
-        let buff = getGroupAreaItem(group, data, areaItemLevels);
         cardData.forEach(card => {
-            card.areaDecoTalent += Math.floor(card.baseTalent * buff);
+            card.areaDecoTalent += Math.floor(card.baseTalent * 0.15);
         });
     }
 
     if (type) {
-        let buff = getTypeAreaItem(type, data, areaItemLevels);
         cardData.forEach(card => {
-            card.areaDecoTalent += Math.floor(card.baseTalent * buff);
+            card.areaDecoTalent += Math.floor(card.baseTalent * 0.15);
         });
     }
 

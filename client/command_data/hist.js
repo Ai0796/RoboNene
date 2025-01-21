@@ -57,6 +57,13 @@ module.exports = {
             'name': 'games',
             'required': false,
             'description': 'Graph games instead of points'
+          },
+          {
+            'type': 'integer',
+            'name': 'chapter',
+            'required': false,
+            'description': 'The chapter to display for (World Link Only)',
+            'autocomplete': true
           }
         ]
       },

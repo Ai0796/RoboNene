@@ -88,7 +88,7 @@ module.exports = {
       'message': 'Please request a link code first.'
     },
 
-    'INTERACTION_TIME': 180000,
+    'INTERACTION_TIME': 360000,
     'LINK_EMOJI': '✅'
   }
 };

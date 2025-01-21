@@ -4,7 +4,7 @@
  */
 
 const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
-const { NENE_COLOR, FOOTER } = require('../../constants');
+const { NENE_COLOR, FOOTER, LOCKED_EVENT_ID } = require('../../constants');
 const { plotlyKey, plotlyUser } = require('../../config.json');
 
 const COMMAND = require('../command_data/hist');
@@ -13,7 +13,7 @@ const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 const getEventData = require('../methods/getEventData');
 
-const Plotly = require('plotly')(plotlyUser, plotlyKey);
+const Plotly = require('plotly')({ 'username': plotlyUser, 'apiKey': plotlyKey, 'host': 'chart-studio.plotly.com' });
 
 const HOUR = 3600000;
 
@@ -82,7 +82,7 @@ async function generateNormalDist(xData) {
 const generateGraphEmbed = (graphUrl, tier, discordClient) => {
   const graphEmbed = new EmbedBuilder()
     .setColor(NENE_COLOR)
-    .setTitle(`${tier}`)
+    .setTitle(`${tier} Nyaa~`)
     .setDescription(`**Requested:** <t:${Math.floor(Date.now() / 1000)}:R>`)
     .setThumbnail(discordClient.client.user.displayAvatarURL())
     .setImage(graphUrl)
@@ -105,11 +105,15 @@ function getLastHour(sortedList, el) {
   if (sortedList.length === 0) {
     return 0;
   }
-  let val = sortedList.reduce(function (prev, curr) {
-    return (Math.abs(curr - el) < Math.abs(prev - el) ? curr : prev);
-  });
+  for (let i = 0; i < sortedList.length; i++) {
+    if (sortedList[i] > el) {
+      return i;
+    }
+  }
 
-  return Math.max(sortedList.indexOf(val), 0);
+  return sortedList.length - 1;
+
+  // return Math.max(sortedList.indexOf(val), 0);
 }
 
 /**
@@ -143,7 +147,7 @@ const postQuickChart = async (interaction, tier, rankData, binSize, min, max, ho
   var lowBound;
 
   if (!hourly) {
-    highBound = Math.min(max || 75000, 75000);
+    highBound = Math.min(max || 150000, 150000);
     lowBound = Math.max(min || 100, 100);
   }
   else {
@@ -165,7 +169,7 @@ const postQuickChart = async (interaction, tier, rankData, binSize, min, max, ho
         if (change < highBound && change >= lowBound) {
           if (showGames) {
             let games = 0;
-            for (let j = timestampIndex; j < i; j++) {
+            for (let j = timestampIndex; j <= i; j++) {
               if (j <= 0) {
                 continue;
               }
@@ -216,14 +220,17 @@ const postQuickChart = async (interaction, tier, rankData, binSize, min, max, ho
 
   let normalDistData = await generateNormalDist(pointsPerGame);
   let estimatedEnergy = energyPossibilities.indexOf(Math.max(...energyPossibilities));
-  let binsize = binSize || Math.max(5, energyBoost[estimatedEnergy]);
+  let binsize = binSize || Math.max(5, energyBoost[estimatedEnergy], Math.max(...pointsPerGame) / 1000);
+
+  pointsPerGame = pointsPerGame.filter(x => x != 2456);
 
   if (hourly) {
     binsize = Math.max(1000, binSize || 10000);
 
-    if (showGames) {
-      binsize = 1;
-    }
+  }
+
+  if (showGames) {
+    binsize = 1;
   }
 
   const average = (pointsPerGame.reduce((a, b) => a + b) / pointsPerGame.length).toFixed(2);
@@ -407,6 +414,11 @@ async function sendHistoricalTierRequest(eventData, tier, binSize, min, max, hou
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
       rankData.unshift({ timestamp: eventData.startAt, score: 0 });
       rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
+      // if (userId == 162304911000768500) {
+      //   let maxVal = Math.max(...rankData.map(x => x.score));
+      //   let minVal = maxVal / 35 * 29;
+      //   rankData = rankData.filter(x => x.score >= minVal);
+      // }
       postQuickChart(interaction, `${eventData.name} T${tier} Cutoffs`, rankData, binSize, min, max, hourly, showGames, discordClient);
     } else {
       noDataErrorMessage(interaction, discordClient);
@@ -463,8 +475,9 @@ module.exports = {
     const hourly = interaction.options.getBoolean('hourly') || false;
     const eventId = interaction.options.getInteger('event') || event.id;
     const showGames = interaction.options.getBoolean('games') || false;
+    const chapterId = interaction.options.getInteger('chapter') ?? null;
 
-    const eventData = getEventData(eventId);
+    let eventData = getEventData(eventId);
 
     if (event.id === -1) {
       await interaction.editReply({
@@ -477,6 +490,18 @@ module.exports = {
         ]
       });
       return;
+    }
+
+    if (chapterId !== null) {
+      let eventId = Math.floor(chapterId / 100);
+      eventData = getEventData(eventId);
+      let world_blooms = discordClient.getAllWorldLinkChapters();
+
+      let world_link = world_blooms.find(chapter => chapter.id == chapterId);
+      eventData.startAt = world_link.chapterStartAt;
+      eventData.aggregateAt = world_link.chapterEndAt;
+      eventData.id = parseInt(`${eventData.id}${world_link.gameCharacterId}`);
+      eventData.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
     }
 
 
@@ -495,13 +520,18 @@ module.exports = {
         rankData.push({ timestamp: Date.now(), score: data[0].Score });
         rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
         postQuickChart(interaction, `${eventData.name} T${tier} Cutoffs`, rankData, binSize, min, max, hourly, showGames, discordClient);
-      } else if (eventData.id < discordClient.getCurrentEvent().id) {
+      } else if (eventData.id < discordClient.getCurrentEvent().id || event.id > LOCKED_EVENT_ID) {
         sendHistoricalTierRequest(eventData, tier, binSize, min, max, hourly, showGames, interaction, discordClient);
       } else {
         sendTierRequest(eventData, tier, binSize, min, max, hourly, showGames, interaction, discordClient);
       }
     } else if (user) {
       try {
+        if (eventData.id > LOCKED_EVENT_ID) {
+          interaction.editReply({ content: `Event ID is past ${LOCKED_EVENT_ID}, User data is unable to be stored after this event and cannot be displayed` });
+          return;
+        }
+        
         let id = discordClient.getId(user.id);
 
         if (id == -1) {
@@ -528,5 +558,19 @@ module.exports = {
         // Error parsing JSON: ${err}`
       }
     }
+  },
+
+  async autocomplete(interaction, discordClient) {
+
+    let world_blooms = discordClient.getAllWorldLinkChapters();
+
+    let options = world_blooms.map((chapter, i) => {
+      return {
+        name: chapter.character,
+        value: chapter.id,
+      };
+    });
+
+    await interaction.respond(options);
   }
 };
