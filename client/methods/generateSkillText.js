@@ -16,7 +16,7 @@ const generateSkillText = (difficulties, skillOrders) => {
     let maxDifficultyLength = 0;
     let maxSkillOrderLength = 0;
 
-    difficulties.forEach((v, i) => {
+    skillOrders.forEach((v, i) => {
         let difficulty = difficulties[i];
         let skillOrder = skillOrders[i];
         maxDifficultyLength = Math.max(maxDifficultyLength, difficulty.length);
@@ -25,7 +25,7 @@ const generateSkillText = (difficulties, skillOrders) => {
 
     let skillOrderText = '';
     for (let i = 0; i < RESULTS_PER_PAGE; i++) {
-        if (i >= difficulties.length) {
+        if (i >= skillOrders.length) {
             skillOrderText += '\u200b';
             break;
         }
