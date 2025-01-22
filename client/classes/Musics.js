@@ -1,6 +1,8 @@
 const fs = require('fs');
 
-const ProsekaSkillOrder = [2, 1, 4, 5, 3, 'E'];
+const ProsekaSkillOrder = [1, 2, 3, 4, 5, 'E'];
+const difficulties = ['easy', 'normal', 'hard', 'expert', 'master', 'append'];
+const diffAcronyms = ['E', 'N', 'H', 'EX', 'M', 'A'];
 
 /**
  * A class designed to store music data from JSON Files
@@ -10,6 +12,7 @@ class music {
         this.ids = new Set();
         this.musics = new Object();
         this.musicmetas = new Object();
+        this.optimalDifficulty = new Object();
 
         const tempIDs = new Set();
         const musicsJSON = JSON.parse(fs.readFileSync('./sekai_master/musics.json'));
@@ -33,6 +36,7 @@ class music {
         //Create new object for each song to store difficulties
         this.ids.forEach(id => {
             this.musicmetas[id] = new Object();
+            this.optimalDifficulty[id] = new Array();
         });
 
         //Checks music metas again now that we have titles to be used as keys
@@ -54,6 +58,11 @@ class music {
                 });
 
                 this.musicmetas[music.music_id][music.difficulty] = skillOrder;
+                let skillScore = music.skill_score_multi.reduce((a, b) => a + b, 0);
+                skillScore *= 2.2;
+                let score = music.base_score + music.fever_score + skillScore;
+                let diffAcronym = diffAcronyms[difficulties.indexOf(music.difficulty)];
+                this.optimalDifficulty[music.music_id].push([score, diffAcronym]);
             }
         });
     }

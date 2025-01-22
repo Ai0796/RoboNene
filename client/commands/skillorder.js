@@ -15,7 +15,7 @@ const music = require('../classes/Musics');
 const generateSkillText = require('../methods/generateSkillText');
 
 //Required since Proseka Skill order is not 1 2 3 4 5
-const Difficulties = ['easy', 'normal', 'hard', 'expert', 'master'];
+const Difficulties = ['easy', 'normal', 'hard', 'expert', 'master', 'append'];
 
 
 
@@ -23,9 +23,19 @@ function skillOrder(order) {
     return `${order[0]} > ${order[1]} > ${order[2]} > ${order[3]} > ${order[4]} > ${order[5]}`;
 }
 
+function optimalDifficulty(difficulties) {
+    difficulties.sort((a, b) => { return b[0] - a[0]; });
+    let returnStr = difficulties.map(difficulty => {
+        return `${difficulty[1]}`;
+    }).join(' > ');
+
+    return `\`${returnStr}\``;
+}
+
 function musicSkillOrder(song) {
     let arr = [];
     Difficulties.forEach(difficulty => {
+        if (song[difficulty] == null) { return; }
         arr.push(`${skillOrder(song[difficulty])}`);
     });
 
@@ -45,8 +55,10 @@ module.exports = {
                 // console.log(interaction.options._hoistedOptions[0].value)
                 let id = interaction.options._hoistedOptions[0].value;
                 let data = musicData.musicmetas[id];
+                let optimalDifficulties = musicData.optimalDifficulty[id];
 
                 let skillOrderText = generateSkillText(Difficulties, musicSkillOrder(data));
+                let optimalDifficultyText = optimalDifficulty(optimalDifficulties);
 
                 //Generate Embed with given text
                 let skillOrderEmbed = new EmbedBuilder()
@@ -54,6 +66,7 @@ module.exports = {
                     .setTitle(`${musicData.musics[id]}`)
                     .setTimestamp()
                     .addFields({ name: 'Skill Orders', value: skillOrderText, inline: false })
+                    .addFields({ name: 'Optimal Difficulty', value: optimalDifficultyText, inline: false })
                     .setFooter({ text: FOOTER, iconURL: interaction.user.displayAvatarURL() });
 
                 await interaction.reply({

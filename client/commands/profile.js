@@ -55,11 +55,12 @@ async function getImage(assetBundleName, rarityType) {
   
     } else {
   
-      let normalImage = `https://storage.sekai.best/sekai-jp-assets/character/member/${assetBundleName}_rip/card_normal.webp`;
+      let normalImage = `https://storage.sekai.best/sekai-jp-assets/character/member_cutout/${assetBundleName}_rip/normal.webp`;
       await downloadImage(normalImage, `${folderLocation}/${assetBundleName}_normal.webp`);
       images.normal = sharp(`${folderLocation}/${assetBundleName}_normal.webp`);
     }
-  } catch {
+  } catch (error) {
+    console.log(error);
     images.normal = sharp('./gacha/default_error_image.png');
   }
   
@@ -71,11 +72,12 @@ async function getImage(assetBundleName, rarityType) {
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       } else {
   
-        let trainedImage = `https://storage.sekai.best/sekai-jp-assets/character/member/${assetBundleName}_rip/card_after_training.webp`;
+        let trainedImage = `https://storage.sekai.best/sekai-jp-assets/character/member_cutout/${assetBundleName}_rip/after_training.webp`;
         await downloadImage(trainedImage, `${folderLocation}/${assetBundleName}_after_training.webp`);
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       }
-    } catch {
+    } catch (error) {
+      console.log(error);
       images.trained = sharp('./gacha/default_error_image.png');
     }
     
@@ -122,8 +124,8 @@ async function overlayCard(image, rarityType, attributeType, mastery, level, tra
   const levelBorder = await sharp('./gacha/levelBorder.png')
     .toBuffer();
   image = await image
-    .resize({ width: 600, height: 576 , fit: 'fill' })
-    .extract({ left: 135, top: 0, width: 330, height: 520 });
+    .resize({ width: 520, height: 520 , fit: 'fill' })
+    .extract({ left: 80, top: 0, width: 330, height: 520 });
   let frame = await sharp(framePath)
     .resize(330, 520)
     .toBuffer();
