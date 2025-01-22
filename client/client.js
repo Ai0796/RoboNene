@@ -56,6 +56,7 @@ class DiscordClient {
     this.apiQueue = [];
 
     this.rateLimit = {};
+    this.cutoffCache = null;
 
     this.client = new Client({ 
       intents: [
@@ -445,6 +446,11 @@ class DiscordClient {
         // If our response is valid we run the callback
         if (response) {
           request.callback(response);
+
+          if (response.rankings && response.rankings.length !== 0) {
+            console.log('Saving Cache at ' + Date.now().toString());
+            this.cutoffCache = {response: response, time: Date.now()}; // Update the cache to be used by leaderboard
+          }
         }
       } else if (request.type === 'master') {
         const response = await apiClient.master();

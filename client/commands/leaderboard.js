@@ -156,16 +156,14 @@ module.exports = {
       return;
     }
 
-    discordClient.addSekaiRequest('ranking', {
-      eventId: event.id,
-    }, async (response) => {
+    const sendLeaderboardEmbed = async (response, timestamp) => {
       // Check if the response is valid
       if (!response.rankings) {
         await interaction.editReply({
           embeds: [
             generateEmbed({
-              name: COMMAND.commandName, 
-              content: COMMAND.CONSTANTS.NO_RESPONSE_ERR, 
+              name: COMMAND.commandName,
+              content: COMMAND.CONSTANTS.NO_RESPONSE_ERR,
               client: discordClient.client
             })
           ]
@@ -175,8 +173,8 @@ module.exports = {
         await interaction.editReply({
           embeds: [
             generateEmbed({
-              name: COMMAND.commandName, 
-              content: COMMAND.CONSTANTS.BAD_INPUT_ERROR, 
+              name: COMMAND.commandName,
+              content: COMMAND.CONSTANTS.BAD_INPUT_ERROR,
               client: discordClient.client
             })
           ]
@@ -185,29 +183,28 @@ module.exports = {
       }
 
       let rankingData = response.rankings;
-      const timestamp = Date.now();
 
       let target = 0;
       let page = 0;
 
       if (interaction.options._hoistedOptions.length) {
         // User has selected a specific rank to jump to
-          if (interaction.options._hoistedOptions[0].value > 100 || 
-            interaction.options._hoistedOptions[0].value < 1) {
-            await interaction.editReply({
-              embeds: [
-                generateEmbed({
-                  name: COMMAND.INFO.name, 
-                  content: COMMAND.CONSTANTS.BAD_RANGE_ERR,
-                  client: discordClient.client
-                })
-              ]
-            });
-            return;
-          } else {
-            target = interaction.options._hoistedOptions[0].value;
-            page = Math.floor((target - 1) / RESULTS_PER_PAGE);
-          }
+        if (interaction.options._hoistedOptions[0].value > 100 ||
+          interaction.options._hoistedOptions[0].value < 1) {
+          await interaction.editReply({
+            embeds: [
+              generateEmbed({
+                name: COMMAND.INFO.name,
+                content: COMMAND.CONSTANTS.BAD_RANGE_ERR,
+                client: discordClient.client
+              })
+            ]
+          });
+          return;
+        } else {
+          target = interaction.options._hoistedOptions[0].value;
+          page = Math.floor((target - 1) / RESULTS_PER_PAGE);
+        }
       }
 
       let start = page * RESULTS_PER_PAGE;
@@ -224,7 +221,7 @@ module.exports = {
         worldLink.id = parseInt(`${worldLink.eventId}${worldLink.gameCharacterId}`);
         let data = response.userWorldBloomChapterRankings[worldLink.chapterNo - 1];
         chapterData = getLastHourData(data, data.rankings, worldLink, discordClient);
-        chapterRankingData = response.userWorldBloomChapterRankings[worldLink.chapterNo-1].rankings;
+        chapterRankingData = response.userWorldBloomChapterRankings[worldLink.chapterNo - 1].rankings;
         [lastHourCutoffs, tierChange, GPH, gamesPlayed, timestampIndex] = chapterData;
         rankingData = chapterRankingData;
       }
@@ -236,16 +233,16 @@ module.exports = {
       var slice, sliceOffset, sliceTierChange, sliceGPH, sliceGamesPlayed;
 
       let leaderboardText = generateRankingText(rankingData.slice(start, end), page, target, lastHourCutoffs.slice(start, end), tierChange.slice(start, end), mobile);
-      
+
       let leaderboardEmbed = new EmbedBuilder()
         .setColor(NENE_COLOR)
         .setTitle(`${event.name} Nyaa~`)
         .setDescription(`T100 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>`)
-        .addFields({name: `Page ${page+1}`, value: leaderboardText, inline: false})
+        .addFields({ name: `Page ${page + 1}`, value: leaderboardText, inline: false })
         .setThumbnail(event.banner)
         .setTimestamp()
-        .setFooter({text: FOOTER, iconURL: interaction.user.displayAvatarURL()});
-      
+        .setFooter({ text: FOOTER, iconURL: interaction.user.displayAvatarURL() });
+
       const leaderboardButtons = new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
@@ -275,7 +272,7 @@ module.exports = {
             .setEmoji(COMMAND.CONSTANTS.ALT));
 
       const worldLinkButtons = new ActionRowBuilder();
-        
+
       if (getWorldLink(event.id) !== -1) {
         worldLinkButtons.addComponents(
           new ButtonBuilder()
@@ -288,34 +285,34 @@ module.exports = {
 
       let components = (getWorldLink(event.id) !== -1) ? [leaderboardButtons, worldLinkButtons] : [leaderboardButtons];
 
-      const leaderboardMessage = await interaction.editReply({ 
-        embeds: [leaderboardEmbed], 
+      const leaderboardMessage = await interaction.editReply({
+        embeds: [leaderboardEmbed],
         components: components,
         fetchReply: true
       });
 
       // Create a filter for valid responses
       const filter = (i) => {
-        return i.customId == 'prev' || 
-        i.customId == 'next' || 
-        i.customId == 'mobile' || 
-        i.customId == 'alt' ||
-        i.customId == 'offset' ||
-        i.customId == 'chapter';
+        return i.customId == 'prev' ||
+          i.customId == 'next' ||
+          i.customId == 'mobile' ||
+          i.customId == 'alt' ||
+          i.customId == 'offset' ||
+          i.customId == 'chapter';
       };
 
-      const collector = leaderboardMessage.createMessageComponentCollector({ 
-        filter, 
-        time: COMMAND.CONSTANTS.INTERACTION_TIME 
+      const collector = leaderboardMessage.createMessageComponentCollector({
+        filter,
+        time: COMMAND.CONSTANTS.INTERACTION_TIME
       });
-      
+
       // Collect user interactions with the prev / next buttons
       collector.on('collect', async (i) => {
         if (i.user.id !== interaction.user.id) {
           await i.reply({
             embeds: [
               generateEmbed({
-                name: COMMAND.INFO.name, 
+                name: COMMAND.INFO.name,
                 content: COMMAND.CONSTANTS.WRONG_USER_ERR,
                 client: discordClient.client
               })
@@ -364,7 +361,7 @@ module.exports = {
           end %= 120;
         }
 
-        if(start > end) {
+        if (start > end) {
           slice = rankingData.slice(start, 120).concat(rankingData.slice(0, end));
           sliceOffset = lastHourCutoffs.slice(start, 120).concat(lastHourCutoffs.slice(0, end));
           sliceTierChange = tierChange.slice(start, 120).concat(tierChange.slice(0, end));
@@ -388,23 +385,36 @@ module.exports = {
           .setColor(NENE_COLOR)
           .setTitle(`${event.name} Nyaa~`)
           .setDescription(`T100 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>\n`)
-          .addFields({name: `Page ${page+1} / ${MAX_PAGE+1}`, value: leaderboardText, inline: false})
+          .addFields({ name: `Page ${page + 1} / ${MAX_PAGE + 1}`, value: leaderboardText, inline: false })
           .setThumbnail(event.banner)
           .setTimestamp()
-          .setFooter({text: FOOTER, iconURL: interaction.user.displayAvatarURL()});
+          .setFooter({ text: FOOTER, iconURL: interaction.user.displayAvatarURL() });
 
-        await i.update({ 
-          embeds: [leaderboardEmbed], 
+        await i.update({
+          embeds: [leaderboardEmbed],
           components: components
         });
       });
 
       collector.on('end', async () => {
-        await interaction.editReply({ 
-          embeds: [leaderboardEmbed], 
+        await interaction.editReply({
+          embeds: [leaderboardEmbed],
           components: []
         });
       });
+    };
+
+    if (discordClient.cutoffCache !== null) {
+      console.log('Using cached data');
+      let { response, timestamp } = discordClient.cutoffCache;
+      sendLeaderboardEmbed(response, timestamp);
+      return;
+    }
+
+    discordClient.addSekaiRequest('ranking', {
+      eventId: event.id,
+    }, async (response) => {
+      sendLeaderboardEmbed(response, Date.now());
     }, async (err) => {
       // Log the error
       discordClient.logger.log({
