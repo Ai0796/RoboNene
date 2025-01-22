@@ -7,6 +7,7 @@ const { TwitterCookie } = require('../config');
 
 const getTweets = async (username) => {
     try {
+        await Timeline.usePuppeteer();
         let data = await Timeline.get(username,
             {
                 cookie: TwitterCookie,

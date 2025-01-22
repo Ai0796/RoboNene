@@ -9,7 +9,7 @@ module.exports = {
     'SAKI': 'YAMCY',
     'HONA': '',
     'SBIB': 'KWHIY',
-    'MINO': '',
+    'MINO': 'SONY',
     'HARU': 'LUV',
     'AIRI': '',
     'SZKU': 'META',
