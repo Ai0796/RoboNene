@@ -449,7 +449,7 @@ class DiscordClient {
 
           if (response.rankings && response.rankings.length !== 0) {
             console.log('Saving Cache at ' + Date.now().toString());
-            this.cutoffCache = {response: response, time: Date.now()}; // Update the cache to be used by leaderboard
+            this.cutoffCache = {response: response, timestamp: Date.now()}; // Update the cache to be used by leaderboard
           }
         }
       } else if (request.type === 'master') {
