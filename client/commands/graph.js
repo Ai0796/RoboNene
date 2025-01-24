@@ -265,9 +265,13 @@ module.exports = {
     let event = discordClient.getCurrentEvent();
 
     const tier = interaction.options.getInteger('tier');
+
+    // When people use the command for cutoffs they usually want to see the tier graph
+    const graphTierDefault = (tier == 50 || tier == 100) ? true : false;
+
     const user = interaction.options.getMember('user');
     let events = interaction.options.getString('event') || [event];
-    const graphTier = interaction.options.getBoolean('by_tier') || false;
+    const graphTier = interaction.options.getBoolean('by_tier') || graphTierDefault;
     let chapter = interaction.options.getString('chapter') ?? null;
 
     var splitEvents;
