@@ -78,6 +78,10 @@ module.exports = {
                 })
             ]
         });
+
+        await interaction.followUp({
+            content: 'Note: Ghostnene can track border cutoffs again, you can use /cutoff to get the exact cutoffs and prediction'
+        });
     }
 };
 
