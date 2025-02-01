@@ -402,10 +402,6 @@ const generateCutoff = async ({ interaction, event,
   await interaction.editReply({
     embeds: [cutoffEmbed]
   });
-
-  if (tier > 100) {
-    await interaction.followUp('# WARNING The data used for this prediction is predicted through a machine learning model and may not be accurate. Use at your own risk.');
-  }
 };
 
 const getWorldLink = (eventId) => {
@@ -481,41 +477,8 @@ module.exports = {
     let chapter = interaction.options.getBoolean('chapter') ?? false;
 
     try {
-      // Use online predicted database
-      if (tier > 100) {
-        let fp = `http://localhost:8080/predictData/${event.id}/${tier}.csv`;
-        let cutoffs = await new Promise((resolve, reject) => {
-          http.get(fp, (res) => {
-            let data = '';
-            res.on('data', (chunk) => {
-              data += chunk;
-            });
-            res.on('end', () => {
-              resolve(data);
-            });
-          }).on('error', (err) => {
-            reject(err);
-          });
-        });
-        parse(cutoffs, {
-          skip_empty_lines: true
-        }, (err, output) => {
-          cutoffs = output;
-          let rankData = cutoffs.map(x => ({ timestamp: parseInt(x[0].trim()), score: parseInt(x[1].trim()) }));
-          generateCutoff({
-            interaction: interaction,
-            event: event,
-            timestamp: timestamp,
-            tier: tier,
-            score: rankData[rankData.length - 1].score,
-            rankData: rankData,
-            detailed: detailed,
-            discordClient: discordClient
-          });
-        });
-      }
       // Otherwise use internal data 
-      else if (chapter && event.eventType === 'world_bloom') {
+      if (chapter && event.eventType === 'world_bloom') {
 
         console.log(`Getting World Link for ${event.id}`);
 
