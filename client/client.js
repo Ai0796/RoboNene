@@ -452,7 +452,19 @@ class DiscordClient {
             this.cutoffCache = {response: response, timestamp: Date.now()}; // Update the cache to be used by leaderboard
           }
         }
-      } else if (request.type === 'master') {
+      } else if (request.type === 'border') {
+        let eventId = request.params.eventId || this.getCurrentEvent().id;
+        if (eventId === -1) {
+          request.error('No event is currently running');
+          return;
+        }
+        const response = await apiClient.eventRankingCutoffs(eventId);
+
+        if (response) {
+          request.callback(response);
+        }
+      } 
+      else if (request.type === 'master') {
         const response = await apiClient.master();
 
         if (response) {
