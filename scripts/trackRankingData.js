@@ -276,6 +276,77 @@ const requestRanking = async (event, discordClient) => {
   }
 };
 
+/**
+ * Requests the event borders
+ * @param {Object} event our ranking event data
+ * @param {DiscordClient} discordClient the client we are using 
+ */
+const requestBorder = async (event, discordClient) => {
+  const saveBorderData = async (response) => {
+
+    // TODO: Add a check here if response is not available
+    // EX: { httpStatus: 403, errorCode: 'session_error', errorMessage: '' }
+    const rankingData = response.borderRankings;
+    const timestamp = Date.now();
+
+    rankingData.forEach((ranking) => {
+      if (ranking != null && event != -1) {
+        // User is already linked
+        let score = ranking['score'];
+        let rank = ranking['rank'];
+        let id = ranking['userId'];
+
+        let games = 1;
+
+        discordClient.cutoffdb.prepare('INSERT INTO cutoffs ' +
+          '(EventID, Tier, Timestamp, Score, ID, GameNum) ' +
+          'VALUES(@eventID, @tier, @timestamp, @score, @id, @gameNum)').run({
+            score: score,
+            eventID: event.id,
+            tier: rank,
+            timestamp: timestamp,
+            id: id,
+            gameNum: games
+          });
+      }
+    });
+
+    if (response.userWorldBloomChapterRankingBorders !== undefined) {
+      response.userWorldBloomChapterRankingBorders.forEach((chapter) => {
+        let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
+        chapter.borderRankings.forEach((ranking) => {
+          let score = ranking['score'];
+          let rank = ranking['rank'];
+          let id = ranking['userId'];
+          let games = 1;
+
+          discordClient.cutoffdb.prepare('INSERT INTO cutoffs ' +
+            '(EventID, Tier, Timestamp, Score, ID, GameNum) ' +
+            'VALUES(@eventID, @tier, @timestamp, @score, @id, @gameNum)').run({
+              score: score,
+              eventID: chapterId,
+              tier: rank,
+              timestamp: timestamp,
+              id: id,
+              gameNum: games
+            });
+        });
+      });
+    }
+  };
+
+
+  console.log('Getting Border Data')
+  discordClient.addPrioritySekaiRequest('border', {
+    eventId: event.id
+  }, saveBorderData, (err) => {
+    discordClient.logger.log({
+      level: 'error',
+      message: err.toString()
+    });
+  });
+};
+
 const getWorldLink = (eventId) => {
   let worldLink = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
   worldLink = worldLink.filter((x) => x.eventId === eventId);
@@ -341,6 +412,10 @@ const trackRankingData = async (discordClient) => {
     setTimeout(() => {trackRankingData(discordClient);}, eta_ms + 1000);
   } else {
     requestRanking(event, discordClient);
+    // Only need to request border every 5 minutes
+    if (new Date().getMinutes() % 5 == 0) {
+      requestBorder(event, discordClient);
+    }
     let eta_ms = getNextCheck();
     console.log(`Event Scores Retrieved, Pausing For ${eta_ms} ms`);
     // 1 extra second to make sure event is on
