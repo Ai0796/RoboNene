@@ -267,7 +267,7 @@ module.exports = {
     const tier = interaction.options.getInteger('tier');
 
     // When people use the command for cutoffs they usually want to see the tier graph
-    const graphTierDefault = (tier == 50 || tier == 100) ? true : false;
+    const graphTierDefault = (tier == 50 || tier >= 100) ? true : false;
 
     const user = interaction.options.getMember('user');
     let events = interaction.options.getString('event') || [event];
