@@ -54,14 +54,14 @@ module.exports = {
       'Nene Robo will store information on Discord ID, Project Sekai ID, if you choose to link accounts. ' +
       'Nene Robo will store the Channel ID and Server ID if you enable tracking. ' +
       'No information will be saved if you choose to disable these features.\n\n' +
-      'Nene Robo’s code is open-source, you can check it out at [github](https://github.com/potor10/RoboNene).',
+      'Nene Robo’s code is open-source, you can check it out at [github](https://github.com/Ai0796/RoboNene).',
 
     'ABOUT_SEKAI': 'Linking accounts with Nene Robo is non-invasive. ' + 
       'Nene Robo will not be able to access or affect your account in any way through linking. \n\n' +
       'Nene Robo will never ask for, nor ever need access to your Project Sekai account to function. ' +
       'Linking accounts exists solely to prevent misuse of certain commands and provide ease of integration between a user and their Project Sekai account.',
 
-    'ABOUT_CONTRIBUTE': 'You can contribute to Nene Robo by opening a pull request at [github](https://github.com/potor10/RoboNene/pulls).',
+    'ABOUT_CONTRIBUTE': 'You can contribute to Nene Robo by opening a pull request at [github](https://github.com/Ai0796/RoboNene/pulls).',
 
     'ABOUT_TECH': 'Nene Robo utilizes discord.js to serve her content. ' + 
       'She saves tiering history and linked account information through use of sqlite3 databases. ' +
