@@ -24,7 +24,8 @@ module.exports = {
       'Ult#0001',
       'Redside#1337',
       'Yuu#6883',
-      'Maid'
+      'Maid',
+      'Ai0'
     ],
 
     'DESIGNERS': [
