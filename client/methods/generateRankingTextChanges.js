@@ -51,6 +51,9 @@ const generateRankingText = (data, page, target, changes, tierChanges, mobile) =
         if (getTierChange(tierChanges[i]).length > maxRankChangeLength) {
             maxRankChangeLength = getTierChange(tierChanges[i]).length;
         }
+
+        user.name = user.name.replace('\n', '').trim();
+
         if (user.name.length > maxNameLength) {
             maxNameLength = user.name.length;
         }

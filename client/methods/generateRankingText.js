@@ -22,6 +22,9 @@ const generateRankingText = (data, page, target) => {
     if (user.rank.toString().length > maxRankLength) {
       maxRankLength = user.rank.toString().length;
     }
+
+    user.name = user.name.replace('\n', '').trim();
+
     if (user.name.length > maxNameLength) {
       maxNameLength = user.name.length;
     }
