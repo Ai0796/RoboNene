@@ -264,10 +264,10 @@ module.exports = {
 
     let event = discordClient.getCurrentEvent();
 
-    const tier = interaction.options.getInteger('tier');
+    const tier = interaction.options.getString('tier');
 
     // When people use the command for cutoffs they usually want to see the tier graph
-    const graphTierDefault = (tier == 50 || tier >= 100) ? true : false;
+    const graphTierDefault = (['50', '100', '200', '300', '400', '500', '1000', '2000', '3000', '4000', '5000', '10000', '20000', '30000', '40000', '50000', '100000'].includes(tier)) ? true : false;
 
     const user = interaction.options.getMember('user');
     let events = interaction.options.getString('event') || [event];
@@ -275,6 +275,7 @@ module.exports = {
     let chapter = interaction.options.getString('chapter') ?? null;
 
     var splitEvents;
+    var splitTiers;
 
     if (typeof (events) === 'string') {
       splitEvents = events.split(',').map(x => getEventData(parseInt(x)));
@@ -282,9 +283,17 @@ module.exports = {
       splitEvents = events;
     }
 
+    if (typeof (tier) === 'string') {
+      splitTiers = tier.split(',').map(x => parseInt(x));
+    } else {
+      splitTiers = [tier];
+    }
+
     if (typeof (chapter) === 'string') {
       chapter = chapter.split(',').map(x => parseInt(x));
     }
+
+    let tierName = splitTiers.map(x => `T${x}`).join(', ');
 
     events = [];
     
@@ -301,12 +310,19 @@ module.exports = {
           world_link.aggregateAt = world_link.chapterEndAt;
           world_link.id = parseInt(`${event.id}${world_link.gameCharacterId}`);
           world_link.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
-          events.push(world_link);
+          for (let i = 0; i < splitTiers.length; i++) {
+            events.push(world_link);
+          }
         });
       } else {
-        events.push(event);
+        for (let i = 0; i < splitTiers.length; i++) {
+          events.push(event);
+        }
       }
     });
+
+    let eventsUnique = [...new Set(events.map(x => x.id))];
+    eventsUnique = eventsUnique.map(x => getEventData(x));
 
     if (events.filter(x => x.id > 0).length === 0) {
       await interaction.editReply({
@@ -323,21 +339,32 @@ module.exports = {
 
     if (tier) {
       if (graphTier) {
-        let data = events.map(event => getTierData(tier, event, discordClient));
+        let data = [];
+        splitTiers.forEach(tierNum => {
+          eventsUnique.forEach(event => {
+            data.push(getTierData(tierNum, event, discordClient));
+          });
+        });
         data = data.filter(x => x.length > 0);
         if (data.length === 0) {
           noDataErrorMessage(interaction, discordClient);
           return;
         }
-        postQuickChart(interaction, `T${tier} Line Graph`, data, events, discordClient);
+        postQuickChart(interaction, `${tierName} Line Graph`, data, events, discordClient);
       } else {
-        let data = events.map(event => getTierPlayerData(tier, event, discordClient));
+        let data = [];
+        splitTiers.forEach(tierNum => {
+          eventsUnique.forEach(event => {
+            data.push(getTierData(tierNum, event, discordClient));
+          });
+        });
+        console.log(data.length, events.length);
         data = data.filter(x => x.length > 0);
         if (data.length === 0) {
           noDataErrorMessage(interaction, discordClient);
           return;
         }
-        postQuickChart(interaction, `T${tier} Player Line Graph`, data, events, discordClient);
+        postQuickChart(interaction, `${tierName} Player Line Graph`, data, events, discordClient);
       }
     } else if (user) {
       try {

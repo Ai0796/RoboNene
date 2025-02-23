@@ -17,7 +17,7 @@ module.exports = {
         'description': 'Get graph of a tier cutoff over time',
         'params' : [
           {
-            'type': 'integer',
+            'type': 'string',
             'name': 'tier',
             'required': true,
             'description': 'The cutoff tier specified',
