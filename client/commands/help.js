@@ -24,7 +24,7 @@ const HELP_CONSTANTS = {
 const commands = {};
 const commandFiles = fs.readdirSync(path.join(__dirname, '../command_data')).filter(file => file.endsWith('.js'));
 
-for (const file of commandFiles.slice(25)) {
+for (const file of commandFiles) {
   const COMMAND = require(`${path.join(__dirname, '../command_data')}/${file}`);
   console.log(`Loaded command data ${COMMAND.INFO.name} from ${file}`);
   commands[COMMAND.INFO.name] = COMMAND.INFO;
@@ -38,10 +38,7 @@ slashCommand.addStringOption(op => {
   op.setName('command');
   op.setDescription('The name of the command you would like information on');
   op.setRequired(true);
-  
-  for(const command in commands) {
-    op.addChoice(command, command);
-  }
+  op.setAutocomplete(true);
 
   return op;
 });
@@ -83,20 +80,20 @@ module.exports = {
       ephemeral: true
     });
 
-    if (!(commands.hasOwnProperty(interaction.options._hoistedOptions[0].value))) {
+    const commandInfo = commands[interaction.options._hoistedOptions[0].value];
+    if (!commandInfo) {
       await interaction.editReply({
         embeds: [
           generateEmbed({
-            name: COMMAND_NAME, 
-            content: HELP_CONSTANTS.BAD_COMMAND, 
+            name: COMMAND_NAME,
+            content: HELP_CONSTANTS['BAD COMMAND'],
             client: discordClient.client
           })
         ]
       });
+
       return;
     }
-
-    const commandInfo = commands[interaction.options._hoistedOptions[0].value];
     let content = {
       type: commandInfo.name,
       message: ''
@@ -120,5 +117,27 @@ module.exports = {
         })
       ]
     });
+  },
+
+  async autocomplete(interaction, discordClient) {
+
+    let focus = interaction.options.getFocused();
+
+    let commandShow = Object.keys(commands).filter((key) => {
+      return key.includes(focus.toLowerCase());
+    });
+    let choices = commandShow.slice(0, 25);
+
+    if (focus == '') {
+      await interaction.respond(choices.map((key) => {
+        return { name: key, value: key };
+      }));
+
+      return;
+    }
+
+    await interaction.respond(choices.map((key) => {
+      return { name: key, value: key };
+    }));
   }
 };
