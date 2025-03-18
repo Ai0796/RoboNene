@@ -120,8 +120,11 @@ const generateCutoff = async ({ interaction, event,
 
   // Every point is spaced by 1 minute intervals (assuming that there isn't any downtime)
   // Otherwise there maybe a difference of 1-2 minutes, but that's still generally ok for calculating
-  if (rankData.length > 60) {
-    lastHourPt = rankData[rankData.length - 60];
+  for(let i = rankData.length - 1; i > 0; i--) {
+    if (timestamp - rankData[i].timestamp >= 3600000 - 60000) {
+      lastHourPt = rankData[i];
+      break;
+    }
   }
 
   // Estimate texts used in the embed
@@ -489,6 +492,7 @@ module.exports = {
             tier: tier
           });
         let rankData = cutoffs.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+        rankData.sort((a, b) => a.timestamp - b.timestamp);
 
         console.log(rankData.length);
 
@@ -512,6 +516,7 @@ module.exports = {
             tier: tier
           });
         let rankData = cutoffs.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+        rankData.sort((a, b) => a.timestamp - b.timestamp);
         generateCutoff({
           interaction: interaction,
           event: event,
