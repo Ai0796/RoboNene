@@ -169,6 +169,7 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
         try {
           console.log(JSON.stringify(JSON.parse(json)));
           await interaction.editReply({
+            content: `<${JSON.parse(json).url}?width=1000&height=600>`,
             embeds: [generateGraphEmbed(JSON.parse(json).url + '?width=1000&height=600', tier, discordClient)]
           });
         } catch (err) {
@@ -321,8 +322,15 @@ module.exports = {
       }
     });
 
-    let eventsUnique = [...new Set(events.map(x => x.id))];
-    eventsUnique = eventsUnique.map(x => getEventData(x));
+    let eventsUnique = [];
+    let eventsUniqueIds = new Set();
+
+    events.forEach(event => {
+      if (!eventsUniqueIds.has(event.id)) {
+        eventsUniqueIds.add(event.id);
+        eventsUnique.push(event);
+      }
+    });
 
     if (events.filter(x => x.id > 0).length === 0) {
       await interaction.editReply({
