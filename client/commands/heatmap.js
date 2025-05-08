@@ -5,7 +5,6 @@
 
 const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
 const { NENE_COLOR, FOOTER, LOCKED_EVENT_ID } = require('../../constants');
-const { plotlyKey, plotlyUser } = require('../../config.json');
 
 const COMMAND = require('../command_data/heatmap');
 
@@ -13,7 +12,8 @@ const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed'); 
 const getEventData = require('../methods/getEventData');
 
-const Plotly = require('plotly')({'username': plotlyUser, 'apiKey': plotlyKey, 'host': 'chart-studio.plotly.com'});
+const renderPlotlyImage = require('../../scripts/plotly_puppet.js');
+
 
 const HOUR = 3600000; 
 const DAY = 86400000;
@@ -431,13 +431,12 @@ const postHamster = async (interaction, title, eventData, offset, pallete, annot
     layout: layout
   };
 
-  var pngOptions = { format: 'png', width: 1000, height: 500 };
-  Plotly.getImage(data, pngOptions, async (err, imageStream) => {
-    if (err) console.log(err);
-    let file = new AttachmentBuilder(imageStream, { name: 'hist.png' });
-    await interaction.editReply({
-      embeds: [generateGraphEmbed('attachment://hist.png', title, discordClient)], files: [file]
-    });
+  let buffer = await renderPlotlyImage(data.data, data.layout);
+
+  let file = new AttachmentBuilder(buffer, { name: 'hist.png' });
+
+  await interaction.editReply({
+    embeds: [generateGraphEmbed('attachment://hist.png', title, discordClient)], files: [file]
   });
 };
 
@@ -724,13 +723,12 @@ const postRabbit = async (interaction, title, eventData, offset, pallete, annota
     layout: layout
   };
 
-  var pngOptions = { format: 'png', width: 1000, height: 500 };
-    Plotly.getImage(data, pngOptions, async (err, imageStream) => {
-    if (err) console.log(err);
-    let file = new AttachmentBuilder(imageStream, { name: 'hist.png' });
-    await interaction.editReply({
-      embeds: [generateGraphEmbed('attachment://hist.png', title, discordClient)], files: [file]
-    });
+  let buffer = await renderPlotlyImage(data.data, data.layout);
+
+  let file = new AttachmentBuilder(buffer, { name: 'hist.png' });
+
+  await interaction.editReply({
+    embeds: [generateGraphEmbed('attachment://hist.png', title, discordClient)], files: [file]
   });
 };
 
@@ -867,6 +865,12 @@ const postQuickChart = async (interaction, tier, rankData, eventData, offset, pa
         i++;
       });
     });
+
+    heatmapData[7][16] = 37;
+  }
+
+  if (eventData.id == 122 && tier.includes('T2')) {
+    heatmapData[2][10] = 32;
   }
 
   let trace1 = {
@@ -1095,13 +1099,11 @@ const postQuickChart = async (interaction, tier, rankData, eventData, offset, pa
     layout: layout
   };
 
-  var pngOptions = {format: 'png', width: 1000, height: 500};
-  Plotly.getImage(data, pngOptions, async (err, imageStream) => {
-    if (err) console.log (err);
-    let file = new AttachmentBuilder(imageStream, {name: 'hist.png'});
-    await interaction.editReply({ 
-      embeds: [generateGraphEmbed('attachment://hist.png', tier, discordClient)], files: [file]
-    });
+  let buffer = await renderPlotlyImage(data.data, data.layout);
+
+  let file = new AttachmentBuilder(buffer, {name: 'hist.png'});
+  await interaction.editReply({ 
+    embeds: [generateGraphEmbed('attachment://hist.png', tier, discordClient)], files: [file]
   });
 
 };
