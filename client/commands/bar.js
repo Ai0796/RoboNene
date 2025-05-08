@@ -13,6 +13,11 @@ const generateEmbed = require('../methods/generateEmbed');
 const getEventData = require('../methods/getEventData');
 
 const HOUR = 3600000; 
+const EMPTY_BAR = '░';
+const FILLED_BAR = '█';
+const LEFT_BOUND = '╢';
+const RIGHT_BOUND = '╠';
+const BAR_WIDTH = 15;
 
 /**
  * Create a graph embed to be sent to the discord interaction
@@ -54,7 +59,23 @@ const generateGraph = (data, hour, eventStart) => {
   const formatTime = (timestamp) => {
     let hour = timestamp / 1000 / 60 / 60;
     let minute = (hour - Math.floor(hour)) * 60;
-    return `${Math.floor(minute)}`;
+    minute = Math.floor(minute);
+    return `${String(minute).padEnd(2, ' ')}`;
+  };
+
+  const formatGraph = (point, maxVal, minVal) => {
+    let percentage = (point - minVal) / (maxVal - minVal);
+    let barLength = Math.floor(percentage * BAR_WIDTH) + 1;
+    let bar = LEFT_BOUND;
+    for (let i = 0; i < BAR_WIDTH; i++) {
+      if (i < barLength) {
+        bar += FILLED_BAR;
+      } else {
+        bar += EMPTY_BAR;
+      }
+    }
+    bar += RIGHT_BOUND;
+    return bar;
   };
 
   if (hour < 0 || hour > data.length - 1) {
@@ -63,8 +84,11 @@ const generateGraph = (data, hour, eventStart) => {
 
   let lines = [];
 
+  let maxPoints = Math.max(...data[hour].map(point => point.score));
+  let minPoints = Math.min(...data[hour].map(point => point.score));
+
   data[hour].forEach((point) => {
-    lines.push(`${formatTime(point.timestamp - eventStart)}: **${point.score.toLocaleString()}**`);
+    lines.push(`\`${formatTime(point.timestamp - eventStart)} ${formatGraph(point.score, maxPoints, minPoints)} ${point.score.toLocaleString()}\``);
   });
 
   return { name: `Games Hour ${hour-1} (${data[hour].length} Games)`, value: lines.join('\n') };
