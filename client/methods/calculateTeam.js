@@ -65,15 +65,19 @@ const readCardTalent = (card, cards, cardEpisodes, gameCharacters) => {
                                                     + data.specialTrainingPower3BonusFixed : 0;
     if(true) {
         let param = cardEpisodes.find((param) => param.cardId === card.cardId && param.seq === 1);
-        talent += param.power1BonusFixed;
-        talent += param.power2BonusFixed;
-        talent += param.power3BonusFixed;
+        if (param != undefined) {
+            talent += param.power1BonusFixed;
+            talent += param.power2BonusFixed;
+            talent += param.power3BonusFixed;
+        }
     }
     if (true) {
         let param = cardEpisodes.find((param) => param.cardId === card.cardId && param.seq === 2);
-        talent += param.power1BonusFixed;
-        talent += param.power2BonusFixed;
-        talent += param.power3BonusFixed;
+        if (param != undefined) {
+            talent += param.power1BonusFixed;
+            talent += param.power2BonusFixed;
+            talent += param.power3BonusFixed;
+        }
     }
 
     talent += card.masterRank * MASTERYRANKREWARDS[CARDRARITIES.indexOf(data.cardRarityType)];
