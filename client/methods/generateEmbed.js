@@ -33,10 +33,6 @@ const generateEmbed = ({name, content, image, client}) => {
     .setTimestamp()
     .setFooter({text: FOOTER, iconURL: client.user.displayAvatarURL()});
 
-  if (image) {
-    embed.setImage(image);
-  }
-
   return embed;
 };
 
