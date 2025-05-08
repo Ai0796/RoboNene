@@ -15,6 +15,7 @@ const timeout = 600000;
 const channels = {};
 
 function pad(num, size) {
+    num = Math.abs(num);
     num = num.toString();
     while (num.length < size) num = '0' + num;
     return num;
