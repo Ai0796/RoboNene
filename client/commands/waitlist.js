@@ -250,7 +250,12 @@ async function createWaitlist(interaction, discordClient) {
 
     DATA[channel_id].message_id = message.id;
 
+    let filter = (i) => {
+        return i.channel.id === interaction.channel.id && ['join', 'leave', 'ping'].includes(i.customId);
+    };
+
     const collector = interaction.channel.createMessageComponentCollector({
+        filter: filter,
         componentType: ComponentType.Button
     });
 
@@ -332,8 +337,8 @@ module.exports = {
         if (focus == '') {
             await interaction.respond([
                 { name: 'Hitorinbo Envy', value: 'Hitorinbo Envy' },
-                { name: 'Lost and Found (Sage is now out)', value: 'Lost and Found' },
-                { name: 'Melt (Sage exists)', value: 'Melt' },
+                { name: 'Lost and Found', value: 'Lost and Found' },
+                { name: 'Melt (Sage and LnF exist)', value: 'Melt' },
                 { name: 'Viva Happy', value: 'Viva Happy' },
                 { name: 'Sage', value: 'Sage' },
                 { name: 'Omakase (Random)', value: 'Omakase (Random)' },
