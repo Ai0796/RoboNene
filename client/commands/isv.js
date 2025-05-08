@@ -22,7 +22,7 @@ function calculateMultiplier(lead, team) {
         team /= 100;
     }
 
-    return ((lead + (team - lead) / 5) + 1).toFixed(2);
+    return ((lead + (team - lead) / 5)).toFixed(2);
 }
 
 module.exports = {
@@ -57,7 +57,7 @@ module.exports = {
                     equivalents.push(`${i}/${team + difference}`);
                 });
 
-                equivalents.push(`Multiplier: ${calculateMultiplier(lead, team)}`)
+                equivalents.push(`Boost: ${calculateMultiplier(lead, team)}`)
 
                 let embed = generateEmbed(
                     {
