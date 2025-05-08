@@ -55,7 +55,7 @@ async function getImage(assetBundleName, rarityType) {
   
     } else {
   
-      let normalImage = `https://storage.sekai.best/sekai-jp-assets/character/member_cutout/${assetBundleName}_rip/normal.webp`;
+      let normalImage = `https://storage.sekai.best/sekai-jp-assets/character/member_cutout/${assetBundleName}/normal.webp`;
       await downloadImage(normalImage, `${folderLocation}/${assetBundleName}_normal.webp`);
       images.normal = sharp(`${folderLocation}/${assetBundleName}_normal.webp`);
     }
@@ -72,7 +72,7 @@ async function getImage(assetBundleName, rarityType) {
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       } else {
   
-        let trainedImage = `https://storage.sekai.best/sekai-jp-assets/character/member_cutout/${assetBundleName}_rip/after_training.webp`;
+        let trainedImage = `https://storage.sekai.best/sekai-jp-assets/character/member_cutout/${assetBundleName}/after_training.webp`;
         await downloadImage(trainedImage, `${folderLocation}/${assetBundleName}_after_training.webp`);
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       }
@@ -221,7 +221,7 @@ const generateProfileEmbed = async (discordClient, userId, data, private) => {
   const leaderCard = binarySearch(leaderCardId, 'id', cards);
   const teamData = calculateTeam(data, discordClient.getCurrentEvent().id);
 
-  let leaderThumbURL = `https://storage.sekai.best/sekai-assets/thumbnail/chara_rip/${leaderCard.assetbundleName}`;
+  let leaderThumbURL = `https://storage.sekai.best/sekai-assets/thumbnail/chara/${leaderCard.assetbundleName}`;
 
   if (leader.defaultImage === 'special_training') {
     leaderThumbURL += '_after_training.webp';

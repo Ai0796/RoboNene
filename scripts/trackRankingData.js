@@ -386,8 +386,8 @@ const getRankingEvent = () => {
     if (events[i].startAt <= currentTime && events[i].aggregateAt + 60 * 15 * 1000 >= currentTime) {
       return {
         id: events[i].id,
-        banner: 'https://sekai-res.dnaroma.eu/file/sekai-en-assets/event/' +
-          `${events[i].assetbundleName}/logo_rip/logo.webp`,
+        banner: 'https://storage.sekai.best/sekai-en-assets/event/' +
+          `${events[i].assetbundleName}/logo/logo.webp`,
         name: events[i].name
       };
     }

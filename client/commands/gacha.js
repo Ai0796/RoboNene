@@ -81,7 +81,7 @@ async function getImage(assetBundleName, rarityType) {
     
         } else {
     
-            let normalImage = `https://storage.sekai.best/sekai-jp-assets/thumbnail/chara_rip/${assetBundleName}_normal.webp`;
+            let normalImage = `https://storage.sekai.best/sekai-jp-assets/thumbnail/chara/${assetBundleName}_normal.webp`;
             await downloadImage(normalImage, `./gacha/cached_images/${assetBundleName}_normal.png`);
             images.normal = sharp(`./gacha/cached_images/${assetBundleName}_normal.png`);
         }
@@ -96,7 +96,7 @@ async function getImage(assetBundleName, rarityType) {
             images.trained = sharp(`./gacha/cached_images/${assetBundleName}_after_training.png`);
             } else {
 
-                let trainedImage = `https://storage.sekai.best/sekai-jp-assets/thumbnail/chara_rip/${assetBundleName}_after_training.webp`;
+                let trainedImage = `https://storage.sekai.best/sekai-jp-assets/thumbnail/chara/${assetBundleName}_after_training.webp`;
                 await downloadImage(trainedImage, `./gacha/cached_images/${assetBundleName}_after_training.png`);
                 images.trained = sharp(`./gacha/cached_images/${assetBundleName}_after_training.png`);
             }

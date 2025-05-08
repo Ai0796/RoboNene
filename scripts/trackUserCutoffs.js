@@ -99,8 +99,8 @@ const getRankingEvent = () => {
         if (events[i].startAt < currentTime && events[i].aggregateAt > currentTime) {
             return {
                 id: events[i].id,
-                banner: 'https://sekai-res.dnaroma.eu/file/sekai-en-assets/event/' +
-                    `${events[i].assetbundleName}/logo_rip/logo.webp`,
+                banner: 'https://storage.sekai.best/sekai-en-assets/event/' +
+                    `${events[i].assetbundleName}/logo/logo.webp`,
                 name: events[i].name,
                 startAt: events[i].startAt,
                 aggregateAt: events[i].aggregateAt,
