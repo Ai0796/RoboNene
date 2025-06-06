@@ -14,7 +14,7 @@ const {
   TextInputStyle,
   ButtonBuilder,
   ButtonStyle,
-  InteractionType,
+  TextInputBuilder,
   ModalBuilder,
 } = require('discord.js');
 
@@ -29,9 +29,9 @@ const generateSlashCommand = require('../methods/generateSlashCommand');
 const Axios = require('axios');
 const { Buffer } = require('buffer');
 const { pipeline } = require('stream/promises');
+const { fuzzy } = require('fast-fuzzy');
 
 const mp3Duration = require('mp3-duration');
-const { TextInputBuilder } = require('discord.js');
 
 const priority = ['SEKAI ver.', 'VIRTUAL SINGER ver.'];
 const notWorking = new Set([-1, 609]);
@@ -40,8 +40,9 @@ const generateEmbed = require('../methods/generateEmbed');
 const musicData = new music();
 const idList = Array.from(musicData.ids);
 
-const diffLength = [3, 5, 7];
-const diffNames = ['Hard', 'Medium', 'Easy'];
+const maxTries = 4;
+const diffLength = [1, 3, 5, 7];
+const diffNames = ['Addict', 'Hard', 'Medium', 'Easy'];
 
 const currentUsers = new Object(); // To track current users in the quiz
 
@@ -221,11 +222,10 @@ module.exports = {
       };
 
       if (!(interaction.channel.id in currentUsers)) {
-        currentUsers[interaction.channel.id] = {}
+        currentUsers[interaction.channel.id] = {};
       }
 
       let tries = 0;
-      const maxTries = 3;
 
       let trimmedSongs = [];
 
@@ -299,7 +299,6 @@ module.exports = {
 
       currentUsers[interaction.channel.id][interaction.user.id] = {
         tries: 0,
-        maxTries: 3,
         songId: songId, // This will be set later
         interaction: interaction,
         trimmedSongs: trimmedSongs, // Store the trimmed songs for later use
@@ -370,15 +369,13 @@ module.exports = {
           // For simplicity, let's assume we have the songId and tries from the interaction context
           const songId = userData.songId; // Replace with actual songId from your state management
           const tries = ++userData.tries; // Replace with actual tries from your state management
-          const maxTries = userData.maxTries; // Replace with actual maxTries from your state management
-          const quizMessage = userData.interaction; // The original interaction message
           const trimmedSongs = userData.trimmedSongs; // The audio files for the quiz
           const assetName = userData.assetName; // The asset name for the song
           let content = userData.content; // The content for the embed
           content.message += `\nGuess ${tries} of ${maxTries}: \`${songName}\``;
           let replyInteraction = userData.interaction; // The original interaction message
 
-          if (songName.toLowerCase() === musicData.musics[songId].toLowerCase()) {
+          if (fuzzy(songName, musicData.musics[songId], {useSellers : false}) > 0.7) {
 
               // Correct answer
             await replyInteraction.editReply({
@@ -387,7 +384,8 @@ module.exports = {
                         name: COMMAND.INFO.name,
                         content: {
                             type: 'Correct Answer',
-                            message: `Congratulations! You guessed the song correctly: \`${musicData.musics[songId]}\` in ${tries} tries!`
+                            message: content.message + 
+                            `\n\nCongratulations! You guessed the song correctly: \`${musicData.musics[songId]}\` in ${tries} tries!`
                         },
                         client: discordClient.client
                     })
