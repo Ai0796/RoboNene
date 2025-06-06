@@ -20,6 +20,9 @@ prayers.json
 test.png
 default_error_image.png
 
+# cached musics
+/songs/*
+
 # fonts
 Arial.ttf
 
