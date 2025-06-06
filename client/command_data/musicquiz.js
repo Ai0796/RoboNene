@@ -30,6 +30,6 @@ module.exports = {
 
     'LINK_MSG': 'Link an account to save your progress',
 
-    'INTERACTION_TIME': 60000,
+    'INTERACTION_TIME': 600000,
   }
 };

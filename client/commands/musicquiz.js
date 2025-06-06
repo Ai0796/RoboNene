@@ -7,7 +7,17 @@
  * @author Potor10
  */
 
-const { ActionRowBuilder, EmbedBuilder } = require('discord.js');
+const { 
+  ActionRowBuilder, 
+  EmbedBuilder, 
+  AttachmentBuilder, 
+  TextInputStyle,
+  ButtonBuilder,
+  ButtonStyle,
+  InteractionType,
+  ModalBuilder,
+} = require('discord.js');
+
 const { NENE_COLOR, FOOTER } = require('../../constants');
 const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
@@ -25,27 +35,15 @@ const { TextInputBuilder } = require('discord.js');
 
 const priority = ['SEKAI ver.', 'VIRTUAL SINGER ver.'];
 const notWorking = new Set([-1, 609]);
-const { generateEmbed } = require('../methods/generateEmbed');
+const generateEmbed = require('../methods/generateEmbed');
 
 const musicData = new music();
 const idList = Array.from(musicData.ids);
 
-const generateAudioEmbed = ({ name, content, image, client }, audioFields) => {
+const diffLength = [3, 5, 7];
+const diffNames = ['Hard', 'Medium', 'Easy'];
 
-  const embed = new EmbedBuilder()
-    .setColor(NENE_COLOR)
-    .setTitle(name.charAt(0).toUpperCase() + name.slice(1) + ' Nyaa~')
-    .addFields({
-      name: content.type.charAt(0).toUpperCase() + content.type.slice(1),
-      value: content.message.charAt(0).toUpperCase() + content.message.slice(1)
-    })
-    .addFields(...audioFields)
-    .setThumbnail(client.user.displayAvatarURL())
-    .setTimestamp()
-    .setFooter({ text: FOOTER, iconURL: client.user.displayAvatarURL() });
-
-  return embed;
-};
+const currentUsers = new Object(); // To track current users in the quiz
 
 const downloadSong = async (assetName) => {
 
@@ -104,7 +102,7 @@ const getSong = async (songId) => {
     assetName = filteredVocals[0].assetbundleName;
   }
 
-  downloadSong(assetName);
+  await downloadSong(assetName);
 
   return assetName;
 };
@@ -179,23 +177,6 @@ const getAccount = (userId, discordClient) => {
   return account;
 };
 
-async function testDownloadTrim() {
-
-  let randomSongId = idList[Math.floor(Math.random() * idList.length)];
-
-  randomSongId = 74;
-
-  const assetName = await getSong(randomSongId);
-  
-  if (assetName) {
-    const trimmedSong = await trimSong(assetName, 30);
-    fs.writeFileSync(`./songs/trimmed/${assetName}.mp3`, trimmedSong);
-    console.log(`Trimmed song saved as ./songs/trimmed/${assetName}.mp3`);
-  } else {
-    console.log('No asset name found for song ID 609');
-  }
-}
-
 async function getAudioFields(songList, lengths, names) {
   let audioFields = [];
 
@@ -209,202 +190,249 @@ async function getAudioFields(songList, lengths, names) {
       inline: true
     });
   });
+
+  return audioFields;
 }
 
-async function generateAudioFiles(songList) {
+async function generateAttachments(songList) {
 
   let audioFiles = songList.map((song, index) => {
-    return {
-      attachment: song,
-      name: `trimmed_song_${index + 1}.mp3`
-    };
+
+    let file = new AttachmentBuilder(song, { name: `Mystery Song (${diffLength[index]} Seconds).mp3` });
+
+    return file;
   });
 
   return audioFiles;
 }
 
-testDownloadTrim();
-
 module.exports = {
   data: generateSlashCommand(COMMAND.INFO),
-  
+
   async execute(interaction, discordClient) {
-    await interaction.deferReply({
-      ephemeral: COMMAND.INFO.ephemeral
-    });
 
-    const input = new TextInputBuilder()
-      .setMaxLength(100)
-      .setCustomId('musicquiz')
-      .setLabel('Song Name')
-      .setRequired(true)
-      .setStyle(1); // 1 is for SHORT style;
+      interaction.deferReply({ ephemeral: false });
 
-    // Initialize our question selection menu
-    const questionSelect = new ActionRowBuilder()
-      .addComponents(input);
+      const interactionSec = Math.round(COMMAND.CONSTANTS.INTERACTION_TIME / 1000);
 
-    const interactionSec = Math.round(COMMAND.CONSTANTS.INTERACTION_TIME / 1000);
-    
-    const content = {
-      type: 'Music Quiz',
-      message: prompt + `\n*You have ${interactionSec} seconds to answer this question*`
-    };
+      const content = {
+          type: 'Music Quiz',
+          message: `\n*You have ${interactionSec} seconds to answer this question*`
+      };
 
-    let tries = 0;
-    let maxTries = 3;
-
-    // Three tries to guess the song
-    const diffLength = [3, 5, 7];
-    const diffNames = ['Hard', 'Medium', 'Easy'];
-
-    let trimmedSongs = [];
-
-    let songId = -1;
-    while (notWorking.has(songId) || songId === -1) {
-      // Randomly select a song id from the list
-      songId = idList[Math.floor(Math.random() * idList.length)];
-    }
-
-    let assetName = await getSong(songId);
-
-    let newTrim = trimSong(assetName, diffLength[0]);
-    trimmedSongs.push(newTrim);
-
-    let fields = await getAudioFields(trimmedSongs, diffLength, diffNames);
-    let files = await generateAudioFiles(trimmedSongs, diffLength, diffNames);
-
-    const quizMessage = await interaction.editReply({
-      embeds: [
-        generateAudioEmbed({
-          name: COMMAND.INFO.name,
-          content: content,
-          client: discordClient.client
-        },
-        fields)
-      ],
-      components: [questionSelect],
-      files: files,
-      fetchReply: true
-    });
-
-    const filter = i => { return i.customId === 'musicquiz'; };
-
-    const collector = quizMessage.createMessageComponentCollector({
-      filter,
-      time: COMMAND.CONSTANTS.INTERACTION_TIME
-    });
-
-    collector.on('collect', async (i) => {
-      // Determine if we have the correct user
-      if (i.user.id !== interaction.user.id) {
-        await i.reply({
-          embeds: [
-            generateEmbed({
-              name: COMMAND.INFO.name, 
-              content: COMMAND.CONSTANTS.WRONG_USER_ERR, 
-              client: discordClient.client
-            })
-          ],
-          ephemeral: true
-        });
-        return;
+      if (!(interaction.channel.id in currentUsers)) {
+        currentUsers[interaction.channel.id] = {}
       }
 
-      tries++;
+      let tries = 0;
+      const maxTries = 3;
 
-      let songName = i.fields.getTextInputValue('musicquiz').trim();
-      console.log(`User answered: ${songName}`);
+      let trimmedSongs = [];
 
-      // Check if the song name matches the correct answer
-      if (songName.toLowerCase() === musicData[songId].toLowerCase()) {
-        // User has answered correctly, we can end the quiz
-        await i.reply({
+      let songId = -1;
+      while (notWorking.has(songId) || songId === -1) {
+          songId = idList[Math.floor(Math.random() * idList.length)];
+      }
+
+      let assetName = await getSong(songId);
+      let newTrim = await trimSong(assetName, diffLength[0]);
+      trimmedSongs.push(newTrim);
+
+      let files = await generateAttachments(trimmedSongs, diffLength, diffNames);
+
+      // --- NEW: Create a button to open the modal ---
+      const guessButton = new ButtonBuilder()
+          .setCustomId('guessSongButton') // Unique ID for this button
+          .setLabel('Guess the Song!')
+          .setStyle(ButtonStyle.Primary); // Blue button
+
+      const actionRowForButton = new ActionRowBuilder()
+          .addComponents(guessButton);
+
+      // --- Original 'input' TextInputBuilder (now part of the modal) ---
+      const songNameTextInput = new TextInputBuilder()
+          .setMaxLength(100)
+          .setCustomId('musicquiz_input') // IMPORTANT: Changed customId to avoid conflict and be specific
+          .setLabel('What is the song name?')
+          .setRequired(true)
+          .setStyle(TextInputStyle.Short);
+
+      // --- NEW: Create the Modal ---
+      const quizModal = new ModalBuilder()
+          .setCustomId('musicquiz') // Unique ID for this modal
+          .setTitle('Guess the Song');
+
+      // Add the TextInput to an ActionRow specifically for the Modal
+      const modalTextInputRow = new ActionRowBuilder().addComponents(songNameTextInput);
+
+      // Add the ActionRow to the Modal
+      quizModal.addComponents(modalTextInputRow);
+
+      // --- Send the initial quiz message with the button ---
+      // This is your original line 279, now updated with the button
+      const quizMessage = await interaction.editReply({
           embeds: [
-            generateEmbed({
-              name: COMMAND.INFO.name,
-              content: {
-                type: COMMAND.CONSTANTS.QUESTION_RIGHT_TYPE,
-                message: `Correct! The song was: \`${musicData[songId]}\` \n\n` +
-                `You answered the question in ${tries} tries!`
-              },
-              client: discordClient.client
-            })
+              generateEmbed({
+                  name: COMMAND.INFO.name,
+                  content: content,
+                  client: discordClient.client
+              })
           ],
-          components: [],
-          files: [],
-          ephemeral: true
-        });
-        collector.stop();
-        return;
-      } else if (tries >= maxTries) {
-        await i.reply({
-          embeds: [
-            generateEmbed({
-              name: COMMAND.INFO.name,
-              content: {
-                type: COMMAND.CONSTANTS.QUESTION_WRONG_TYPE,
-                message: `You've ran out of tries, the song was: \`${musicData[songId]}`
-              },
-              client: discordClient.client
-            })
-          ],
-          components: [],
-          files: [],
-          ephemeral: true
-        });
-        collector.stop();
-        return;
-      } else {
-        // User has not answered correctly, we can continue
-
-        let newTrim = await trimSong(assetName, diffLength[tries]);
-        trimmedSongs.push(newTrim);
-
-        fields = await getAudioFields(trimmedSongs, diffLength, diffNames);
-        files = await generateAudioFiles(trimmedSongs, diffLength, diffNames);
-
-        await i.reply({
-          embeds: [
-            generateAudioEmbed({
-              name: COMMAND.INFO.name,
-              content: {
-                type: COMMAND.CONSTANTS.QUESTION_WRONG_TYPE,
-                message: `Incorrect! You have ${maxTries - tries} tries left.`
-              },
-              client: discordClient.client
-            },
-            fields)
-          ],
-          components: [questionSelect],
+          components: [actionRowForButton], // Send the ActionRow with the button
           files: files,
-          ephemeral: true
-        });
-        return;
+          fetchReply: true
+      });
+
+      // --- Collector for the Button Click (to open the modal) ---
+      const buttonFilter = i => i.customId === 'guessSongButton' && i.user.id === interaction.user.id;
+
+      const buttonCollector = quizMessage.createMessageComponentCollector({
+          filter: buttonFilter,
+          time: COMMAND.CONSTANTS.INTERACTION_TIME
+      });
+
+      buttonCollector.on('collect', async (buttonInteraction) => {
+          // Defer update to show Discord that the bot is processing,
+          // otherwise, the modal might not show if interaction isn't acknowledged.
+          await buttonInteraction.showModal(quizModal);
+      });
+
+      currentUsers[interaction.channel.id][interaction.user.id] = {
+        tries: 0,
+        maxTries: 3,
+        songId: songId, // This will be set later
+        interaction: interaction,
+        trimmedSongs: trimmedSongs, // Store the trimmed songs for later use
+        assetName: assetName,
+        actionRow: actionRowForButton, // Store the button row for later use
+        collector: buttonCollector, // Store the collector for later use
+        content: content // Store the content for later use
+      };
+
+      // --- Collector for the Quiz Timeout (remains mostly the same) ---
+      // This collector now also acts as the overall quiz timer.
+      // The modal submission will implicitly 'end' the collector if correct.
+      buttonCollector.on('end', async (collected, reason) => {
+
+           // Only if the quiz wasn't solved already by a modal submit
+           if (reason === 'time' && tries < maxTries) { // Assuming 'tries' is updated externally or passed through state
+              const timeoutContent = {
+                  type: COMMAND.CONSTANTS.QUESTION_TIMEOUT_TYPE,
+                  message: COMMAND.CONSTANTS.QUESTION_TIMEOUT_MSG + ` The song was: \`${musicData.musics[songId]}\``
+              };
+
+              await interaction.editReply({
+                  embeds: [
+                      generateEmbed({
+                          name: COMMAND.INFO.name,
+                          content: timeoutContent,
+                          client: discordClient.client
+                      })
+                  ],
+                  components: [], // Remove components when quiz ends
+                  files: [] // Clear files if they were related to active quiz
+              });
+           }
+
+           currentUsers[interaction.channel.id][interaction.user.id] = null; // Clear user state after quiz ends
+      });
+  },
+
+  async modalSubmit(interaction, discordClient) {
+      if (interaction.customId === 'musicquiz') {
+          // Handle the modal submission
+          const songName = interaction.fields.getTextInputValue('musicquiz_input');
+
+          // currentUsers[interaction.channel.id][interaction.user.id] = {
+          //   tries: 0,
+          //   maxTries: 3,
+          //   songId: songId, // This will be set later
+          //   interaction: quizMessage, // Store the message to delete later
+          //   audioFiles: files, // Store the audio files for later use
+          //   trimmedSongs: trimmedSongs, // Store the trimmed songs for later use
+          //   assetName: assetName
+          // };
+
+          if (!currentUsers[interaction.channel.id] || !currentUsers[interaction.channel.id][interaction.user.id]) {
+              return interaction.reply({
+                  content: 'You are not currently in a music quiz.',
+                  ephemeral: true
+              });
+          }
+
+          await interaction.reply('Processing your answer...');
+          await interaction.deleteReply()
+
+          const userData = currentUsers[interaction.channel.id][interaction.user.id];
+
+          // Retrieve the active quiz state for this user
+          // Example: const quizState = activeQuizzes.get(interaction.user.id);
+          // For simplicity, let's assume we have the songId and tries from the interaction context
+          const songId = userData.songId; // Replace with actual songId from your state management
+          const tries = ++userData.tries; // Replace with actual tries from your state management
+          const maxTries = userData.maxTries; // Replace with actual maxTries from your state management
+          const quizMessage = userData.interaction; // The original interaction message
+          const trimmedSongs = userData.trimmedSongs; // The audio files for the quiz
+          const assetName = userData.assetName; // The asset name for the song
+          let content = userData.content; // The content for the embed
+          content.message += `\nGuess ${tries} of ${maxTries}: \`${songName}\``;
+          interaction = userData.interaction; // The original interaction message
+
+          if (songName.toLowerCase() === musicData.musics[songId].toLowerCase()) {
+
+              // Correct answer
+              await interaction.editReply({
+                embeds: [
+                    generateEmbed({
+                        name: COMMAND.INFO.name,
+                        content: {
+                            type: 'Correct Answer',
+                            message: `Congratulations! You guessed the song correctly: \`${musicData.musics[songId]}\` in ${tries} tries!`
+                        },
+                        client: discordClient.client
+                    })
+                ],
+                components: [], // Remove components when quiz ends
+                files: [] // Clear files if they were related to active quiz
+              });
+              userData.collector.stop('solved'); // Stop the button collector if the answer is correct
+          } else if (tries >= maxTries) {
+              // Max tries reached
+
+              content.message += `\n\nYou have ran out of tries, the correct answer was: \`${musicData.musics[songId]}\``
+
+              await interaction.editReply({
+                embeds: [
+                    generateEmbed({
+                        name: COMMAND.INFO.name,
+                        content: content,
+                        client: discordClient.client
+                    })
+                ],
+                components: [], // Remove components when quiz ends
+                files: [] // Clear files if they were related to active quiz
+              });
+          } 
+          else {
+
+              trimmedSongs.push(await trimSong(assetName, diffLength[tries]));
+              let files = await generateAttachments(trimmedSongs, diffLength, diffNames);
+
+              await interaction.editReply({
+                embeds: [
+                  generateEmbed({
+                      name: COMMAND.INFO.name,
+                      content: userData.content,
+                      client: discordClient.client
+                  })
+                ],
+                components: [userData.actionRow], // Remove components when quiz ends
+                files: files // Clear files if they were related to active quiz
+              });
+              // Increment tries and check if max tries reached, then end quiz if so.
+              // Example: quizState.tries++;
+              // if (quizState.tries >= COMMAND.CONSTANTS.MAX_TRIES) { ... }
+          }
       }
-    });
-
-    collector.on('end', async (collected) => {
-      if (tries < maxTries) {
-        console.log(`Collected ${collected.size} items`);
-
-        // If the user has not answered the question yet
-        const content = {
-          type: COMMAND.CONSTANTS.QUESTION_TIMEOUT_TYPE,
-          message: COMMAND.CONSTANTS.QUESTION_TIMEOUT_MSG
-        };
-
-        await interaction.editReply({
-          embeds: [
-            generateEmbed({
-              name: COMMAND.INFO.name, 
-              content: content, 
-              client: discordClient.client
-            })
-          ],
-          components: []
-        });
-      }
-    });
   }
 };

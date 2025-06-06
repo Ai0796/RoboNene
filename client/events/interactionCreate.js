@@ -28,7 +28,7 @@ module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, discordClient) {
     if (interaction.isAutocomplete()) {
-      const interactionIdx = discordClient.commands
+      let interactionIdx = discordClient.commands
       .map(c => c.data.name)
       .indexOf(interaction.commandName);
       if (interactionIdx != -1) {
@@ -39,6 +39,26 @@ module.exports = {
             console.error(error);
         }
       }
+
+      return;
+    }
+
+    if (interaction.isModalSubmit()) {
+
+      console.log('Modal submit interaction received');
+      let interactionIdx = discordClient.commands
+      .map(c => c.data.name)
+      .indexOf(interaction.customId);
+      if (interactionIdx != -1) {
+        const command = discordClient.commands[interactionIdx];
+        try {
+          await command.modalSubmit(interaction, discordClient);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      return;
     }
     if (!interaction.isCommand()) return;
 
