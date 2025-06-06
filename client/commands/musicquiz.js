@@ -211,7 +211,7 @@ module.exports = {
 
   async execute(interaction, discordClient) {
 
-      interaction.deferReply({ ephemeral: false });
+      await interaction.deferReply({ ephemeral: false });
 
       const interactionSec = Math.round(COMMAND.CONSTANTS.INTERACTION_TIME / 1000);
 
@@ -338,10 +338,10 @@ module.exports = {
       });
   },
 
-  async modalSubmit(interaction, discordClient) {
-      if (interaction.customId === 'musicquiz') {
+  async modalSubmit(modelInteraction, discordClient) {
+    if (modelInteraction.customId === 'musicquiz') {
           // Handle the modal submission
-          const songName = interaction.fields.getTextInputValue('musicquiz_input');
+      const songName = modelInteraction.fields.getTextInputValue('musicquiz_input');
 
           // currentUsers[interaction.channel.id][interaction.user.id] = {
           //   tries: 0,
@@ -353,17 +353,17 @@ module.exports = {
           //   assetName: assetName
           // };
 
-          if (!currentUsers[interaction.channel.id] || !currentUsers[interaction.channel.id][interaction.user.id]) {
-              return interaction.reply({
+      if (!currentUsers[modelInteraction.channel.id] || !currentUsers[modelInteraction.channel.id][modelInteraction.user.id]) {
+              return modelInteraction.reply({
                   content: 'You are not currently in a music quiz.',
                   ephemeral: true
               });
           }
 
-          await interaction.reply('Processing your answer...');
-          await interaction.deleteReply()
+      await modelInteraction.reply('Processing your answer...');
+      await modelInteraction.deleteReply();
 
-          const userData = currentUsers[interaction.channel.id][interaction.user.id];
+      const userData = currentUsers[modelInteraction.channel.id][modelInteraction.user.id];
 
           // Retrieve the active quiz state for this user
           // Example: const quizState = activeQuizzes.get(interaction.user.id);
@@ -376,12 +376,12 @@ module.exports = {
           const assetName = userData.assetName; // The asset name for the song
           let content = userData.content; // The content for the embed
           content.message += `\nGuess ${tries} of ${maxTries}: \`${songName}\``;
-          interaction = userData.interaction; // The original interaction message
+          let replyInteraction = userData.interaction; // The original interaction message
 
           if (songName.toLowerCase() === musicData.musics[songId].toLowerCase()) {
 
               // Correct answer
-              await interaction.editReply({
+            await replyInteraction.editReply({
                 embeds: [
                     generateEmbed({
                         name: COMMAND.INFO.name,
@@ -401,7 +401,7 @@ module.exports = {
 
               content.message += `\n\nYou have ran out of tries, the correct answer was: \`${musicData.musics[songId]}\``
 
-              await interaction.editReply({
+            await replyInteraction.editReply({
                 embeds: [
                     generateEmbed({
                         name: COMMAND.INFO.name,
@@ -418,7 +418,7 @@ module.exports = {
               trimmedSongs.push(await trimSong(assetName, diffLength[tries]));
               let files = await generateAttachments(trimmedSongs, diffLength, diffNames);
 
-              await interaction.editReply({
+            await replyInteraction.editReply({
                 embeds: [
                   generateEmbed({
                       name: COMMAND.INFO.name,
