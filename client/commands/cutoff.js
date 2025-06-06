@@ -474,14 +474,26 @@ module.exports = {
       return;
     }
 
-    const timestamp = Date.now();
-
     let detailed = interaction.options.getBoolean('detailed') ?? false;
     let chapter = interaction.options.getBoolean('chapter') ?? false;
 
     try {
       // Otherwise use internal data 
       if (chapter && event.eventType === 'world_bloom') {
+
+        if (tier == 1500 || tier == 2500) {
+          await interaction.editReply({
+            embeds: [generateEmbed({
+              name: COMMAND.INFO.name,
+              content: {
+                type: 'Error',
+                message: 'Chapter cutoffs don\'t exist have T1500 or T2500. '
+              },
+              client: discordClient.client
+            })]
+          });
+          return;
+        }
 
         console.log(`Getting World Link for ${event.id}`);
 
@@ -502,7 +514,7 @@ module.exports = {
         generateCutoff({
           interaction: interaction,
           event: world_link,
-          timestamp: timestamp,
+          timestamp: rankData[rankData.length - 1].timestamp,
           tier: tier,
           score: rankData[rankData.length - 1].score,
           rankData: rankData,
@@ -520,7 +532,7 @@ module.exports = {
         generateCutoff({
           interaction: interaction,
           event: event,
-          timestamp: timestamp,
+          timestamp: rankData[rankData.length - 1].timestamp,
           tier: tier,
           score: rankData[rankData.length - 1].score,
           rankData: rankData,
