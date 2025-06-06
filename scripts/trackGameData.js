@@ -27,7 +27,8 @@ const GAME_CONSTANTS = {
     'eventDeckBonuses',
     'virtualLives',
     'worldBlooms',
-    'gachas'
+    'gachas',
+    'musicVocals'
   ]
 };
 
