@@ -41,7 +41,8 @@ const collectTwitter = async (data, discordClient) => {
     date.setMinutes(minute);
 
     const tweets = await getTweets(username);
-    for (let i = 0; i < tweets.length; i++) {
+    tweets.sort((a, b) => { return b - a; });
+    for (let i = 0; i < Math.min(tweets.length, 25); i++) {
         if (!(data.tweets.includes(tweets[i]))) {
             data.tweets.push(tweets[i]);
 
@@ -54,6 +55,9 @@ const collectTwitter = async (data, discordClient) => {
             channel.send(str);
         }
     }
+
+    // Remove old tweets
+    data.tweets = data.tweets.slice(-50);
 
     return data;
 };
@@ -73,24 +77,22 @@ const writeTwitterData = (data) => {
 };
 
 const addTwitterData = async (username, channelid, role) => {
-    const data = readTwitterData();
 
-    data.push({
+    twitterData.push({
         username: username,
         channel: channelid,
         role: role,
         tweets: []
     });
-    writeTwitterData(data);
+    writeTwitterData(twitterData);
     return true;
 };
 
 const removeTwitterData = (username, channelid) => {
-    const data = readTwitterData();
-    for (let i = 0; i < data.length; i++) {
-        if (data[i].username === username && data[i].channel === channelid) {
-            data.splice(i, 1);
-            writeTwitterData(data);
+    for (let i = 0; i < twitterData.length; i++) {
+        if (twitterData[i].username === username && twitterData[i].channel === channelid) {
+            twitterData.splice(i, 1);
+            writeTwitterData(twitterData);
             return true;
         }
     }
@@ -98,13 +100,13 @@ const removeTwitterData = (username, channelid) => {
 };
 
 const collectTwitterData = async (discordClient) => {
-    let data = readTwitterData();
-    for (let i = 0; i < data.length; i++) {
-        data[i] = await collectTwitter(data[i], discordClient);
+    for (let i = 0; i < twitterData.length; i++) {
+        twitterData[i] = await collectTwitter(twitterData[i], discordClient);
     }
-    writeTwitterData(data);
+    writeTwitterData(twitterData);
 };
 
+const twitterData = readTwitterData();
 
 /**
  * Continaully grabs and updates the Cutoff data
