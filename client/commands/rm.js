@@ -15,6 +15,12 @@ const timeout = 600000;
 const channels = {};
 
 function pad(num, size) {
+
+    if (isNaN(num)) {
+        return num;
+    }
+
+    num = parseInt(num);
     num = Math.abs(num);
     num = num.toString();
     while (num.length < size) num = '0' + num;
