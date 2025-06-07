@@ -33,7 +33,6 @@ const { fuzzy } = require('fast-fuzzy');
 
 const mp3Duration = require('mp3-duration');
 
-const priority = ['SEKAI ver.', 'VIRTUAL SINGER ver.'];
 const notWorking = new Set([-1, 609]);
 const generateEmbed = require('../methods/generateEmbed');
 
@@ -91,17 +90,8 @@ const getSong = async (songId) => {
     return vocal.musicId === songId;
   });
 
-  let assetName = null;
-
-  priority.forEach((vocal) => {
-    if (filteredVocals.caption === vocal && assetName === null) {
-      assetName = filteredVocals.assetbundleName;
-    }
-  });
-
-  if (assetName === null) {
-    assetName = filteredVocals[0].assetbundleName;
-  }
+  // Get random version
+  let assetName = filteredVocals[Math.floor(Math.random() * filteredVocals.length)].assetName;
 
   await downloadSong(assetName);
 
