@@ -251,7 +251,7 @@ async function createWaitlist(interaction, discordClient) {
     DATA[channel_id].message_id = message.id;
 
     let filter = (i) => {
-        return i.channel.id === interaction.channel.id && ['join', 'leave', 'ping'].includes(i.customId);
+        return i.message.id == DATA[channel_id].message_id && ['join', 'leave', 'ping'].includes(i.customId);
     };
 
     const collector = interaction.channel.createMessageComponentCollector({
