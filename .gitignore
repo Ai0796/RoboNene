@@ -8,6 +8,7 @@
 
 # config
 config.json
+config.ts
 ecosystem.config.js
 
 # storage json files
