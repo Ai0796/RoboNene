@@ -5,13 +5,14 @@
  * @author Potor10
  */
 
-import { token, secretKey, TwitterCookie } from '../config'; // Import from TS config
+import { token, secretKey } from '../config'; // Import from TS config
 import { Client, GatewayIntentBits, Events, Collection, Message, Guild } from 'discord.js';
 import { SekaiClient } from 'sekapi';
 import { RATE_LIMIT } from '../constants';
 
-import winston from 'winston';
-import Database from 'better-sqlite3-multiple-ciphers';
+const winston = require('winston'); // Importing the winston logger for logging
+const Database = require('better-sqlite3-multiple-ciphers'); // Importing the Database class from better-sqlite3-multiple-ciphers
+type DatabaseType = InstanceType<typeof Database>;
 import { AceBase, AceBaseLocalSettings } from 'acebase';
 
 import * as fs from 'fs';
@@ -57,9 +58,9 @@ class DiscordClient {
   token: string;
   commands: { data: CommandInfo; execute: Function; autocomplete?: Function; modalSubmit?: Function; adminOnly?: boolean; requiresLink?: boolean }[];
   logger: winston.Logger | null;
-  db: Database | null;
-  cutoffdb: Database | null;
-  prayerdb: Database | null;
+  db: DatabaseType | null;
+  cutoffdb: DatabaseType | null;
+  prayerdb: DatabaseType | null;
   stockdb: AceBase | null;
 
   prefix: string;
@@ -418,8 +419,8 @@ class DiscordClient {
     const apiPrefs = fs.readdirSync(dir).filter(file => file.endsWith('.js')); // Assuming prefs are still .js
 
     for (const file of apiPrefs) {
-      const playerPrefs = (await import(`${dir}/${file}`)).default; // Dynamic import
-      console.log(`Loaded client ${playerPrefs.account_user_id} from ${file}`);
+      const playerPrefs = require(`${dir}/${file}`); // Dynamic import
+      console.log(`Loaded client ${playerPrefs.account_install_id} from ${file}`);
 
       // Sekai Api Init
       const apiClient = new SekaiClient(playerPrefs);

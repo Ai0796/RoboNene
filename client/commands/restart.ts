@@ -9,8 +9,8 @@ import * as COMMAND from '../command_data/restart'; // Assuming command_data/res
 import generateSlashCommand from '../methods/generateSlashCommand';
 import * as APP from 'process'; // Import process module
 import * as fs from 'fs';
-import { PermissionFlagsBits, CommandInteraction, TextBasedChannel } from 'discord.js'; // Import necessary types
-import DiscordClient from '../client/client'; // Assuming default export
+import { PermissionFlagsBits, CommandInteraction, TextBasedChannel, PermissionsBitField } from 'discord.js'; // Import necessary types
+import DiscordClient from '../client'; // Assuming default export
 
 // Helper function to check if a member has manage messages permissions
 function isAdmin(interaction: CommandInteraction): boolean {

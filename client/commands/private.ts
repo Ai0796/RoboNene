@@ -8,7 +8,7 @@
 import * as COMMAND from '../command_data/private'; // Assuming command_data/private.ts is converted
 import generateSlashCommand from '../methods/generateSlashCommand';
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 import { CommandInteraction } from 'discord.js'; // Import CommandInteraction
 
 export default {

@@ -5,14 +5,14 @@
  * @author Potor10
  */
 
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, type CommandInteraction } from 'discord.js';
 import { NENE_COLOR, FOOTER } from '../../constants';
 import * as fs from 'fs';
 
 import * as COMMAND from '../command_data/schedule'; // Assuming command_data/schedule.ts is converted
 import generateSlashCommand from '../methods/generateSlashCommand';
 import { DateTime } from 'luxon';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 interface GameCharacter {
   id: number;

@@ -8,7 +8,7 @@ import { CommandInteraction } from 'discord.js'; // Import CommandInteraction
 import * as COMMAND from '../command_data/id'; // Import all exports from id
 import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming default export
 import generateEmbed from '../methods/generateEmbed'; // Assuming default export
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 export default {
     ...COMMAND.INFO,

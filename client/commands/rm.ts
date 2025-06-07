@@ -8,8 +8,8 @@
 import * as COMMAND from '../command_data/rm'; // Assuming command_data/rm.ts is converted
 import generateSlashCommand from '../methods/generateSlashCommand';
 import generateEmbed from '../methods/generateEmbed';
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, CommandInteraction, Message, TextBasedChannel } from 'discord.js'; // Import CommandInteraction, Message, TextBasedChannel
-import DiscordClient from '../client/client'; // Assuming default export
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, CommandInteraction, EmbedBuilder, Message, TextBasedChannel, type MessageComponentInteraction } from 'discord.js'; // Import CommandInteraction, Message, TextBasedChannel
+import DiscordClient from '../client'; // Assuming default export
 
 const timeout = 600000; // 10 minutes in milliseconds
 // Using a simple in-memory object to store channel timestamps.
@@ -426,8 +426,7 @@ export default {
 
             const promptMessage = await message.channel.send({
                 embeds: [promptEmbed],
-                components: [roomButtons],
-                fetchReply: true
+                components: [roomButtons]
             });
 
             const filter = (i: MessageComponentInteraction) => {

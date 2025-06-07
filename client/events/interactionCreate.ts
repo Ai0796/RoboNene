@@ -8,7 +8,7 @@
 
 import { DMChannel, Events, Interaction, CommandInteraction, AutocompleteInteraction, ModalSubmitInteraction, PermissionsBitField, ChannelType } from 'discord.js';
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 // General constants used to reply to standard interactions
 const INTERACTION_CONST = {

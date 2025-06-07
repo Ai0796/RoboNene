@@ -9,7 +9,7 @@ import * as COMMAND from '../command_data/cat'; // Import all exports from cat
 import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming default export
 import Axios from 'axios'; // Import Axios directly
 import { CAT_API_KEY } from '../../config'; // Assuming CAT_API_KEY is exported from config
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 
 export default {
@@ -28,7 +28,7 @@ export default {
 
             let url = 'https://api.thecatapi.com/v1/images/search';
             const urlObj = new URL(url); // Use URL object for query params
-            urlObj.search = new URLSearchParams(queryParams as Record<string, string>).toString(); // Type assertion for URLSearchParams
+            urlObj.search = new URLSearchParams(queryParams).toString(); // Type assertion for URLSearchParams
 
             const response = await Axios.get(urlObj.toString(), { headers: { 'x-api-key': CAT_API_KEY } });
             const data: any[] = response.data; // Type as any array for simplicity

@@ -9,7 +9,7 @@ import generateSlashCommand from '../methods/generateSlashCommand';
 import { addTwitterData, getTweets, removeTwitterData } from '../../scripts/trackTwitterData'; // Assuming these are named exports
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, CommandInteraction, MessageComponentInteraction, Role } from 'discord.js'; // Import necessary types
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 export default {
     ...COMMAND.INFO,

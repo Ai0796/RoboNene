@@ -10,7 +10,8 @@ import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming 
 import * as fs from 'fs';
 import Axios from 'axios'; // Import Axios directly
 import sharp from 'sharp'; // Import sharp directly
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
+import { NENE_COLOR, FOOTER } from '../../constants';
 
 
 interface CardData {
@@ -35,10 +36,10 @@ interface GameCharacter {
  */
 const generateEmbed = ({ name, image, client }: { name: string; image?: string; client: DiscordClient['client'] }): EmbedBuilder => {
     const embed = new EmbedBuilder()
-        .setColor(COMMAND.NENE_COLOR) // Assuming NENE_COLOR is in COMMAND.CONSTANTS
+        .setColor(NENE_COLOR) // Assuming NENE_COLOR is in COMMAND.CONSTANTS
         .setTitle(name.charAt(0).toUpperCase() + name.slice(1) + ' Nyaa~')
         .setTimestamp()
-        .setFooter({ text: COMMAND.FOOTER, iconURL: client.user?.displayAvatarURL() || '' }); // Assuming FOOTER is in COMMAND.CONSTANTS
+        .setFooter({ text: FOOTER, iconURL: client.user?.displayAvatarURL() || '' }); // Assuming FOOTER is in COMMAND.CONSTANTS
 
     if (image) {
         embed.setImage(image);

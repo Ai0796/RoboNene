@@ -7,7 +7,7 @@
 
 import { Guild, Client, ActivityType } from 'discord.js'; // Import Guild and ActivityType
 import { BOT_ACTIVITY } from '../../constants';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 export default {
   name: 'guildCreate',

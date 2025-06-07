@@ -6,10 +6,11 @@
 
 import * as COMMAND from '../command_data/statistics'; // Assuming command_data/statistics.ts is converted
 import generateSlashCommand from '../methods/generateSlashCommand';
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, CommandInteraction, MessageComponentInteraction, GuildMember } from 'discord.js'; // Import necessary types
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, CommandInteraction, MessageComponentInteraction, GuildMember, type AutocompleteInteraction } from 'discord.js'; // Import necessary types
 import { NENE_COLOR, FOOTER, LOCKED_EVENT_ID } from '../../constants';
 import getEventData from '../methods/getEventData'; // Assuming getEventData.ts is converted
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
+import generateEmbed from '../methods/generateEmbed';
 
 const HOUR = 3600000; // milliseconds in an hour
 
@@ -348,8 +349,7 @@ async function sendEmbed(interaction: CommandInteraction, embed: EmbedBuilder, m
 
   const statisticsMessage = await interaction.editReply({
     embeds: [embed],
-    components: [statisticsButtons],
-    fetchReply: true
+    components: [statisticsButtons]
   });
 
   // Create a filter for valid responses

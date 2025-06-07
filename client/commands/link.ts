@@ -1,12 +1,12 @@
 // client/commands/link.ts
-import { ActionRowBuilder, ButtonBuilder, EmbedBuilder, ButtonStyle, CommandInteraction, MessageComponentInteraction } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, EmbedBuilder, ButtonStyle, CommandInteraction, MessageComponentInteraction, type PermissionsBitField } from 'discord.js';
 import { NENE_COLOR, FOOTER } from '../../constants';
 
 // Assuming command_data/link.ts has been converted and exported properly
 import * as COMMAND from '../command_data/link';
 import generateSlashCommand from '../methods/generateSlashCommand';
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 // Helper function to check if a member has admin permissions
 function isAdmin(interaction: CommandInteraction): boolean {
@@ -163,8 +163,7 @@ export default {
             client: discordClient.client
           })
         ],
-        components: [linkButton],
-        fetchReply: true
+        components: [linkButton]
       });
 
       let linked = false;

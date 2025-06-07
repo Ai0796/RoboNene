@@ -16,9 +16,7 @@ interface TwitterTrackerData {
     tweets: string[]; // Array of tweet IDs
 }
 
-const twitterData: TwitterTrackerData[] = readTwitterData(); // Load data on startup
-
-const getTweets = async (username: string): Promise<string[]> => {
+export const getTweets = async (username: string): Promise<string[]> => {
     try {
         await Timeline.usePuppeteer(); // Assuming this initializes Puppeteer
         const data = await Timeline.get(username,
@@ -148,6 +146,8 @@ const collectAllTwitterData = async (discordClient: DiscordClient): Promise<void
     }
     writeTwitterData(twitterData);
 };
+
+const twitterData: TwitterTrackerData[] = readTwitterData(); // Load data on startup
 
 /**
  * Continually grabs and updates the Twitter data

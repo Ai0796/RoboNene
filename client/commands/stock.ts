@@ -10,7 +10,7 @@ import generateSlashCommand from '../methods/generateSlashCommand';
 import generateEmbed from '../methods/generateEmbed';
 import Stocks from '../stock/stock'; // Assuming stock.ts is converted
 import prskChars from '../stock/stockTickers'; // Assuming stockTickers.ts is converted
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 import { CommandInteraction, GuildMember } from 'discord.js'; // Import necessary types
 
 const stocks = new Stocks(stockApiKey);
@@ -337,7 +337,7 @@ async function getStocks(interaction: CommandInteraction, user: GuildMember, dis
   for (const key of keys) {
     // Handle old format where ticker might be just a number
     if (typeof userStocks[key] !== 'object' || !('average' in userStocks[key])) {
-      const tempAmount = (userStocks[key] as any).amount || userStocks[key];
+      const tempAmount = (userStocks[key] as any).amount || userStocks[key]; // If it's a number, it's the amount
       userStocks[key] = { average: 0.00, amount: Number(tempAmount) }; // Initialize with 0 average and old amount
     }
 
@@ -385,4 +385,51 @@ export default {
         stockList += key;
         stockList += '\r\n';
       }
-      await interaction
+      await interaction.editReply({
+        embeds: [generateEmbed({
+          name: 'Stocks List',
+          content: {
+            'type': 'Symbols',
+            'message': stockList
+          },
+          client: discordClient.client
+        })]
+      });
+      return;
+    }
+
+    else if (subcommand === 'get') {
+      const ticker = interaction.options.getString('symbol');
+      if (ticker) {
+        await sendStockData(ticker, interaction, discordClient);
+      }
+    }
+
+    else if (subcommand === 'buy') {
+      const ticker = interaction.options.getString('symbol');
+      const amount = interaction.options.getInteger('amount');
+      if (ticker && amount !== null) { // Check for null amount
+        await buyStock(ticker, amount, interaction, discordClient);
+      }
+    }
+
+    else if (subcommand === 'sell') {
+      const ticker = interaction.options.getString('symbol');
+      const amount = interaction.options.getInteger('amount');
+      if (ticker && amount !== null) { // Check for null amount
+        await sellStock(ticker, amount, interaction, discordClient);
+      }
+    }
+
+    else if (subcommand === 'portfolio') {
+      const userOption = interaction.options.getMember('user');
+      const user = userOption instanceof GuildMember ? userOption : interaction.member instanceof GuildMember ? interaction.member : interaction.user; // Prioritize GuildMember, then Interaction.user for display name
+
+      if (user) {
+          await getStocks(interaction, user as GuildMember, discordClient); // Cast to GuildMember
+      } else {
+          await interaction.editReply('Could not retrieve user for portfolio.');
+      }
+    }
+  }
+};

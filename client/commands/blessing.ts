@@ -9,7 +9,7 @@ import { CommandInteraction } from 'discord.js';
 import * as COMMAND from '../command_data/blessing'; // Import all exports from blessing
 import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming default export
 import * as fs from 'fs';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const fp = './JSONs/blessing.json';
 
@@ -137,7 +137,7 @@ function getBonks(): number {
             bonkFile['blessings'] = bonkFile['blessings'] + 1;
         }
         else {
-            bonkFile['blessings'] = 0; // Should be 1 if it's the first bonk.
+            (bonkFile as BlessingFile)['blessings'] = 0; // Should be 1 if it's the first bonk.
         }
 
         bonk = bonkFile['blessings'];

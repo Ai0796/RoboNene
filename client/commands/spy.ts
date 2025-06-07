@@ -10,7 +10,7 @@ import * as COMMAND from '../command_data/spy'; // Assuming command_data/spy.ts 
 import generateSlashCommand from '../methods/generateSlashCommand';
 import getRank from '../methods/getRank'; // Assuming getRank.ts is converted
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 import { CommandInteraction } from 'discord.js'; // Import CommandInteraction
 
 export default {

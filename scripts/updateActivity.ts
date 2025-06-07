@@ -2,6 +2,7 @@
 import * as fs from 'fs';
 import { Client, ActivityType } from 'discord.js'; // Import ActivityType
 import { BOT_ACTIVITY } from '../constants';
+import type DiscordClient from '../client/client';
 
 interface GameCharacter {
     id: number;
@@ -53,7 +54,6 @@ const nextEventActivity = async (client: Client): Promise<void> => {
     const worldBlooms: WorldBloom[] = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json', 'utf8')) as WorldBloom[];
 
 
-    let currentEventIdx = -1;
     const currentDate = new Date();
 
     // Find the current or next upcoming event
@@ -140,7 +140,7 @@ const formatTime = async (timeInMs: number): Promise<string> => {
     return `${hours}h ${minutes}m`;
 };
 
-const updateActivity = async (client: Client): Promise<void> => {
+const updateActivity = async (client: DiscordClient): Promise<void> => {
     let time = new Date();
     time.setSeconds(0);
     time.setMilliseconds(0);
@@ -149,8 +149,8 @@ const updateActivity = async (client: Client): Promise<void> => {
     while (timeout < 0) { // Ensure timeout is positive
         timeout += 60000;
     }
-    setTimeout(() => setInterval(() => updateActivityLoop(client), 60000), timeout);
-    updateActivityLoop(client); // Run once immediately
+    setTimeout(() => setInterval(() => updateActivityLoop(client.client), 60000), timeout);
+    updateActivityLoop(client.client); // Run once immediately
 };
 
 export default updateActivity;

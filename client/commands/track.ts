@@ -9,7 +9,7 @@ import * as COMMAND from '../command_data/track'; // Assuming command_data/track
 import { PermissionsBitField, CommandInteraction, GuildMember } from 'discord.js'; // Import necessary types
 import generateSlashCommand from '../methods/generateSlashCommand';
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const fp = './JSONs/track.json'; // File for tier tracking
 const userFp = './JSONs/userTrack.json'; // File for user-specific tracking

@@ -6,11 +6,12 @@
 
 import * as COMMAND from '../command_data/waitlist'; // Assuming command_data/waitlist.ts is converted
 import generateSlashCommand from '../methods/generateSlashCommand';
-import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, ComponentType, CommandInteraction, MessageComponentInteraction, User, GuildMember } from 'discord.js'; // Import necessary types
+import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, ComponentType, CommandInteraction, MessageComponentInteraction, User, GuildMember, ButtonStyle } from 'discord.js'; // Import necessary types
 import { NENE_COLOR, FOOTER } from '../../constants';
 import * as fs from 'fs';
 import Music from '../classes/Musics'; // Assuming Music class is default export
 import generateEmbed from '../methods/generateEmbed'; // Import generateEmbed
+import type DiscordClient from '../client';
 
 const musicData = new Music();
 

@@ -10,7 +10,7 @@ import * as COMMAND from '../command_data/hug'; // Import all exports from hug
 import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming default export
 import axios from 'axios'; // Import axios directly
 import * as fs from 'fs';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const fp = './JSONs/hug.json';
 const hugAPIURL = 'https://api.otakugifs.xyz/gif?reaction=hug';

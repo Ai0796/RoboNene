@@ -9,7 +9,7 @@ import { CommandInteraction } from 'discord.js'; // Import CommandInteraction
 import * as COMMAND from '../command_data/isv'; // Import all exports from isv
 import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming default export
 import generateEmbed from '../methods/generateEmbed'; // Assuming default export
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 function verify(inputStr: string): boolean { // Added type for inputStr
     const regex = new RegExp('[0-9]+/[0-9]+$');

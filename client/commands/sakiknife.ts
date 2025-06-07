@@ -7,7 +7,7 @@
 import * as COMMAND from '../command_data/sakiknife'; // Assuming command_data/sakiknife.ts is converted
 import generateSlashCommand from '../methods/generateSlashCommand';
 import { CommandInteraction } from 'discord.js'; // Import CommandInteraction
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 export default {
     ...COMMAND.INFO,

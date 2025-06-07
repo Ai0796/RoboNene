@@ -4,7 +4,7 @@
  * @author Potor10
  */
 
-import { AttachmentBuilder, EmbedBuilder, CommandInteraction, GuildMember } from 'discord.js'; // Import GuildMember
+import { AttachmentBuilder, EmbedBuilder, CommandInteraction, GuildMember, type AutocompleteInteraction } from 'discord.js'; // Import GuildMember
 import { NENE_COLOR, FOOTER, LOCKED_EVENT_ID } from '../../constants';
 
 import * as COMMAND from '../command_data/hist'; // Import all exports from hist
@@ -13,7 +13,7 @@ import generateEmbed from '../methods/generateEmbed'; // Assuming default export
 import getEventData from '../methods/getEventData'; // Assuming default export
 import renderPlotlyImage from '../../scripts/plotly_puppet'; // Assuming default export
 
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const HOUR = 3600000;
 

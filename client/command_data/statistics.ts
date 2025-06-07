@@ -67,4 +67,6 @@ export const CONSTANTS = {
     'SEKAI_BEST_HOST': 'api.sekai.best',
 
     'CONDENSED': '📱',
+
+    'INTERACTION_TIME': 60000,
 };

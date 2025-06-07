@@ -36,7 +36,7 @@ import { search } from 'fast-fuzzy'; // Import search function directly
 
 import mp3Duration from 'mp3-duration'; // Assuming mp3-duration is correctly imported
 import generateEmbed from '../methods/generateEmbed'; // Ensure generateEmbed is imported
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const notWorking = new Set<number>([-1, 609]); // Use Set with number type
 const musicData = new Music();
@@ -315,8 +315,7 @@ export default {
         })
       ],
       components: [actionRowForButton],
-      files: files,
-      fetchReply: true
+      files: files
     });
 
     // --- Collector for the Button Click (to open the modal) ---

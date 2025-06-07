@@ -8,7 +8,7 @@ import * as COMMAND from '../command_data/magicghostnene'; // Assuming command_d
 import generateSlashCommand from '../methods/generateSlashCommand';
 import { EmbedBuilder, CommandInteraction, Message } from 'discord.js'; // Import CommandInteraction and Message
 import { NENE_COLOR, FOOTER } from '../../constants';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 import { Content } from '../methods/generateEmbed'; // Import Content interface
 
 /**

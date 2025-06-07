@@ -8,7 +8,8 @@ import { CommandInteraction, EmbedBuilder, GuildMember } from 'discord.js'; // I
 import * as COMMAND from '../command_data/games'; // Import all exports from games
 import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming default export
 import generateEmbed from '../methods/generateEmbed'; // Assuming default export
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
+import { NENE_COLOR, FOOTER } from '../../constants';
 
 const energyBoost = [
     1,
@@ -43,11 +44,11 @@ interface EventData {
  */
 const generateBasicEmbed = ({ name, client }: { name: string; client: DiscordClient['client'] }): EmbedBuilder => {
     const embed = new EmbedBuilder()
-        .setColor(COMMAND.NENE_COLOR) // Assuming NENE_COLOR is in COMMAND.CONSTANTS
+        .setColor(NENE_COLOR) // Assuming NENE_COLOR is in COMMAND.CONSTANTS
         .setTitle(name.charAt(0).toUpperCase() + name.slice(1) + ' Nyaa~')
         .setThumbnail(client.user?.displayAvatarURL() || '') // Optional chaining
         .setTimestamp()
-        .setFooter({ text: COMMAND.FOOTER, iconURL: client.user?.displayAvatarURL() || '' }); // Optional chaining
+        .setFooter({ text: FOOTER, iconURL: client.user?.displayAvatarURL() || '' }); // Optional chaining
 
     return embed;
 };
@@ -70,8 +71,7 @@ function getEnergyPerGame(energyTable: number[][], eventPoints: number): number 
 
 async function sendEmbed(interaction: CommandInteraction, embed: EmbedBuilder): Promise<void> {
     await interaction.editReply({
-        embeds: [embed],
-        fetchReply: true
+        embeds: [embed]
     });
 }
 

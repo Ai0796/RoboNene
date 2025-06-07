@@ -8,7 +8,7 @@ import * as COMMAND from '../command_data/silver'; // Assuming command_data/silv
 import generateSlashCommand from '../methods/generateSlashCommand';
 import * as fs from 'fs';
 import { CommandInteraction } from 'discord.js'; // Import CommandInteraction
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const fp = './JSONs/silver.json';
 

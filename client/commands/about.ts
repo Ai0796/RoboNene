@@ -11,7 +11,7 @@ import { BOT_NAME } from '../../constants';
 import * as COMMAND from '../command_data/about'; // Import all exports from about
 import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming default export
 import generateEmbed from '../methods/generateEmbed'; // Assuming default export
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 
 export default {
@@ -150,8 +150,7 @@ export default {
 
     const aboutMessage = await interaction.editReply({
       embeds: [aboutPages[page]],
-      components: [aboutButtons],
-      fetchReply: true
+      components: [aboutButtons]
     });
 
     const filter = (i: any) => { // Type as any for simplicity on interaction collector

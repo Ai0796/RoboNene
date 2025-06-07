@@ -40,6 +40,11 @@ export const CONSTANTS = {
       '4. Press the green ✅ Link button!'
   },
 
+  'ERR_COMMAND' : {
+    'type': 'Error',
+    'message': 'An unknown error occurred while trying to link your account. Please try again later.'
+  },
+
   'RATE_LIMIT_ERR': {
     'type': 'Error',
     'message': 'You have reached the maximum amount of requests to the API. ' +

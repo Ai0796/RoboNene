@@ -6,7 +6,7 @@
 
 import * as COMMAND from '../command_data/pray'; // Assuming command_data/pray.ts is converted
 import generateSlashCommand from '../methods/generateSlashCommand';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 import { CommandInteraction, Message } from 'discord.js'; // Import CommandInteraction and Message
 
 const getTimeTrunc = async (): Promise<number> => {

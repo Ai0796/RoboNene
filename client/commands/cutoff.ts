@@ -17,7 +17,7 @@ import generateEmbed from '../methods/generateEmbed'; // Assuming default export
 import binarySearch from '../methods/binarySearch'; // Assuming default export
 import weightedLinearRegression from '../methods/weightedLinearRegression'; // Assuming default export
 import bisectLeft from '../methods/bisect'; // Assuming default export
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const fp = './JSONs/weights.json';
 const weights: { [tier: string]: [number[], number[], number[]] } = JSON.parse(fs.readFileSync(fp, 'utf8')); // Type assertion for weights
@@ -471,6 +471,7 @@ const generateCutoff = async ({ interaction, event,
   await interaction.editReply({
     embeds: [cutoffEmbed]
   });
+  }
 };
 
 const getWorldLink = (eventId: number): any => { // Type as any for simplicity

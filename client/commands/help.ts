@@ -10,7 +10,7 @@ import * as path from 'path';
 
 import generateEmbed from '../methods/generateEmbed'; // Assuming default export
 import { CommandInfo } from '../methods/generateSlashCommand'; // Import CommandInfo interface
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 // Constants that are used within the command
 const COMMAND_NAME = 'help';

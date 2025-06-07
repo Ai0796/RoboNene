@@ -14,7 +14,7 @@ import * as fs from 'fs';
 import * as COMMAND from '../command_data/quiz'; // Assuming command_data/quiz.ts is converted
 import generateSlashCommand from '../methods/generateSlashCommand';
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 import { Content } from '../methods/generateEmbed'; // Import Content interface
 
 /**
@@ -113,19 +113,19 @@ abstract class QuestionGenerator {
  * A class designed to obtain questions from existing event data
  */
 class EventQuestion extends QuestionGenerator {
-  private events: Event[];
-  private prompts: QuizPrompt<Event>[];
+  private events: EventData[];
+  private prompts: QuizPrompt<EventData>[];
 
   constructor() {
     super('events');
-    this.events = JSON.parse(fs.readFileSync('./sekai_master/events.json', 'utf8')) as Event[];
-    this.prompts = (require('../../quiz/event') as { default: QuizPrompt<Event>[] }).default; // Access default export
+    this.events = JSON.parse(fs.readFileSync('./sekai_master/events.json', 'utf8')) as EventData[];
+    this.prompts = (require('../../quiz/event') as { default: QuizPrompt<EventData>[] }).default; // Access default export
   }
 
   getQuestion(): Question {
     const eventShuffle = shuffle([...this.events]); // Create a shallow copy to avoid mutating original array
 
-    let event: Event | undefined;
+    let event: EventData | undefined;
     let wrong: string[] = [];
     const maxAttempts = 100; // Limit attempts to find unique events
     let attempts = 0;

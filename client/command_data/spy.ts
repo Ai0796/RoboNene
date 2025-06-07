@@ -47,5 +47,10 @@ export const CONSTANTS = {
   'BAD_ID_ERR': {
     'type': 'Error',
     'message': 'You have provided an invalid ID.'
+  },
+
+  'BAD_INPUT_ERROR': {
+    'type': 'Error',
+    'message': 'You have provided an invalid input.'
   }
 };

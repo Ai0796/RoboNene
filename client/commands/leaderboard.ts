@@ -9,7 +9,7 @@ import generateRankingTextChanges from '../methods/generateRankingTextChanges';
 import generateAlternateRankingText from '../methods/generateAlternateRankingText';
 import generateEmbed from '../methods/generateEmbed';
 import * as fs from 'fs';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const MAX_PAGE = Math.ceil(100 / RESULTS_PER_PAGE) - 1;
 
@@ -375,8 +375,7 @@ export default {
 
       const leaderboardMessage = await interaction.editReply({
         embeds: [leaderboardEmbed],
-        components: components,
-        fetchReply: true
+        components: components
       });
 
       // Create a filter for valid responses

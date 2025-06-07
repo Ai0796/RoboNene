@@ -87,4 +87,5 @@ export const CONSTANTS = {
 
   'LEFT': '⬅️',
   'RIGHT': '➡️',
+  'INTERACTION_TIME': 60000, // 1 minute in milliseconds
 };

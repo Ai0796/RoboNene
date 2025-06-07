@@ -16,7 +16,7 @@ import binarySearch from '../methods/binarySearch'; // Assuming binarySearch.ts 
 import calculateTeam, { CalculatedCard, CalculatedTeam } from '../methods/calculateTeam'; // Assuming calculateTeam.ts is converted
 import sharp from 'sharp'; // Import sharp
 import Axios from 'axios'; // Import Axios
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 interface SekaiProfileResponse {
   user: {
@@ -426,7 +426,7 @@ const generateProfileEmbed = async (discordClient: DiscordClient, userId: string
     if (charInfo.firstName) {
       charName += ` ${charInfo.firstName}`;
     }
-    const rankText = `${char.characterRank}`;
+    let rankText = `${char.characterRank}`;
     let chlgText = '0';
     if (char.characterId in challengeRankInfo) {
       chlgText = `${challengeRankInfo[char.characterId]}`;
@@ -504,7 +504,7 @@ const getProfile = async (interaction: CommandInteraction, discordClient: Discor
   }, async (response: SekaiProfileResponse) => { // Type response explicitly
     const userDbEntry = discordClient.db?.prepare('SELECT * FROM users WHERE sekai_id=@sekaiId').all({
       sekaiId: userId
-    }) as { private: number }[] | undefined; // Type assertion
+    }) as { private: number }[] | false; // Type assertion
 
     const isPrivate = userDbEntry && userDbEntry.length > 0 && userDbEntry[0].private === 1;
 

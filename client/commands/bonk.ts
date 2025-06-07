@@ -8,7 +8,7 @@ import { CommandInteraction, User, GuildMember } from 'discord.js'; // Import ne
 import * as COMMAND from '../command_data/bonk'; // Import all exports from bonk
 import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming default export
 import * as fs from 'fs';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const fp = './JSONs/bonk.json';
 

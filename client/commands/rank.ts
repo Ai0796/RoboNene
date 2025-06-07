@@ -9,7 +9,7 @@ import * as COMMAND from '../command_data/rank'; // Assuming command_data/rank.t
 import generateSlashCommand from '../methods/generateSlashCommand';
 import getRank from '../methods/getRank'; // Assuming getRank.ts is converted
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 import { CommandInteraction } from 'discord.js'; // Import CommandInteraction
 
 export default {

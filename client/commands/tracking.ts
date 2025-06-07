@@ -9,7 +9,7 @@ import * as COMMAND from '../command_data/tracking'; // Assuming command_data/tr
 import generateSlashCommand from '../methods/generateSlashCommand';
 import generateEmbed from '../methods/generateEmbed';
 import { PermissionsBitField, CommandInteraction, TextChannel } from 'discord.js'; // Import necessary types
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 export default {
   ...COMMAND.INFO,

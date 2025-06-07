@@ -31,8 +31,8 @@ loadGameData(0, async () => {
   client.loadServerHandler();
 
   await client.login();
-  await client.loadSekaiClient();
-  await client.runSekaiRequests();
+  // await client.loadSekaiClient();
+  // await client.runSekaiRequests();
 
   // Begin the scripts
   trackGameData(client);

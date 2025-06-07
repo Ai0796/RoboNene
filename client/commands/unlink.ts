@@ -12,7 +12,7 @@ import { NENE_COLOR, FOOTER } from '../../constants';
 import * as COMMAND from '../command_data/unlink';
 import generateSlashCommand from '../methods/generateSlashCommand';
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 import { Content } from '../methods/generateEmbed'; // Import Content interface
 
 /**

@@ -12,7 +12,7 @@ import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming 
 import generateEmbed from '../methods/generateEmbed'; // Assuming default export
 import getEventData from '../methods/getEventData'; // Assuming default export
 import renderPlotlyImage from '../../scripts/plotly_puppet'; // Assuming default export
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 
 const HOUR = 3600000;

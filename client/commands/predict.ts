@@ -9,7 +9,7 @@ import generateSlashCommand from '../methods/generateSlashCommand';
 import generateEmbed from '../methods/generateEmbed';
 import * as fs from 'fs';
 import bisectLeft from '../methods/bisect'; // Assuming bisect.ts is converted
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 import { CommandInteraction } from 'discord.js'; // Import CommandInteraction
 
 const fp = './JSONs/weights.json';

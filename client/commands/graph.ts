@@ -12,7 +12,7 @@ import * as COMMAND from '../command_data/graph'; // Import all exports from gra
 import generateSlashCommand from '../methods/generateSlashCommand'; // Assuming default export
 import generateEmbed from '../methods/generateEmbed'; // Assuming default export
 import getEventData from '../methods/getEventData'; // Assuming default export
-import DiscordClient from '../client/client'; // Assuming default export
+import DiscordClient from '../client'; // Assuming default export
 
 const colors = [
   '#FF77217F',
@@ -332,7 +332,7 @@ export default {
     const graphTier = interaction.options.getBoolean('by_tier'); // True for tier, false for player
     let chapterInput = interaction.options.getString('chapter'); // Renamed to avoid conflict
 
-    let splitEvents: Event[] = [];
+    let splitEvents: EventData[] = [];
     let splitTiers: number[] = [];
     let chapterIds: number[] | null = null;
 
@@ -354,7 +354,7 @@ export default {
     }
 
 
-    let relevantEvents: Event[] = [];
+    let relevantEvents: EventData[] = [];
 
     // Filter relevant events based on chapter selection if applicable
     splitEvents.forEach(_event => { // Renamed parameter to avoid shadowing
@@ -369,7 +369,7 @@ export default {
             return;
           }
           // Create a new event object for the chapter for graphing purposes
-          const chapterEvent: Event = {
+          const chapterEvent: EventData = {
             id: parseInt(`${currentEvent.id}${world_link.gameCharacterId}`), // Unique ID for chapter
             name: `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`,
             startAt: world_link.chapterStartAt,
@@ -393,7 +393,7 @@ export default {
     });
 
     // Ensure only unique events are processed
-    const uniqueEventsMap = new Map<number, Event>();
+    const uniqueEventsMap = new Map<number, EventData>();
     relevantEvents.forEach(e => uniqueEventsMap.set(e.id, e));
     const eventsToGraph = Array.from(uniqueEventsMap.values());
 
@@ -448,7 +448,7 @@ export default {
           return;
         }
 
-        const userDataArrays: RankDataPoint[][] = eventsToGraph.map(e => getUserData(id, e.id, discordClient));
+        const userDataArrays: RankDataPoint[][] = eventsToGraph.map(e => getUserData(id.toString(), e.id, discordClient));
         const filteredUserDataArrays = userDataArrays.filter(arr => arr.length > 0);
 
         if (filteredUserDataArrays.length > 0) {

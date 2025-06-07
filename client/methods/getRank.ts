@@ -9,7 +9,7 @@ import { EmbedBuilder, Interaction, User, GuildMember } from 'discord.js';
 import { NENE_COLOR, FOOTER, RESULTS_PER_PAGE } from '../../constants';
 import generateRankingText from '../methods/generateRankingText';
 import generateEmbed from '../methods/generateEmbed';
-import DiscordClient from '../client/client'; // Assuming DiscordClient is exported as default
+import DiscordClient from '../client'; // Assuming DiscordClient is exported as default
 
 // Messages displayed when there is an error
 const RANK_CONSTANTS = {
