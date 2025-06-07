@@ -37,7 +37,7 @@ const notWorking = new Set([-1, 609]);
 const generateEmbed = require('../methods/generateEmbed');
 
 const musicData = new music();
-musicData.loadAliases() // Look I know it's bad, but I'm going insane
+musicData.loadAliases(); // Look I know it's bad, but I'm going insane
 
 const idList = Array.from(musicData.ids);
 

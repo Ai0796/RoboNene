@@ -104,8 +104,8 @@ class music {
                 this.aliases[music.id].push(music.title);
                 let romaji = hepburn.fromKana(music.pronunciation)
                     .normalize('NFD')
-                    .replace(/[\u0300-\u036f]/g, '')
-                this.aliases[music.id].push();
+                    .replace(/[\u0300-\u036f]/g, '');
+                this.aliases[music.id].push(romaji);
             }
         });
     }
