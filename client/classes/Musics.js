@@ -1,8 +1,35 @@
 const fs = require('fs');
+const hepburn = require('hepburn');
+const https = require('https');
 
 const ProsekaSkillOrder = [1, 2, 3, 4, 5, 'E'];
 const difficulties = ['easy', 'normal', 'hard', 'expert', 'master', 'append'];
 const diffAcronyms = ['E', 'N', 'H', 'EX', 'M', 'A'];
+
+const getGithub = (link) => {
+    return new Promise((resolve, reject) => {
+        https.get(link, (res) => {
+            let data = '';
+            // A chunk of data has been received.
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            // The whole response has been received.
+            res.on('end', () => {
+                try {
+                    // Parse the data and resolve the promise.
+                    resolve(JSON.parse(data));
+                } catch (e) {
+                    // If parsing fails, reject the promise.
+                    reject(new Error(`Failed to parse JSON from ${link}: ${e.message}`));
+                }
+            });
+        }).on('error', (err) => {
+            // Handle request errors by rejecting the promise.
+            reject(new Error(`Error fetching data from GitHub ${link}: ${err.message}`));
+        });
+    });
+};
 
 /**
  * A class designed to store music data from JSON Files
@@ -11,6 +38,7 @@ class music {
     constructor() {
         this.ids = new Set();
         this.musics = new Object();
+        this.aliases = new Object();
         this.musicmetas = new Object();
         this.optimalDifficulty = new Object();
 
@@ -27,6 +55,7 @@ class music {
         musicsJSON.forEach(music => {
             if(this.ids.has(music.id)) {
                 this.musics[music.id] = music.title;
+                this.aliases[music.id] = [music.title, music.pronunciation]
                 tempIDs.add(music.id);
             }
         });
@@ -63,6 +92,20 @@ class music {
                 let score = music.base_score + music.fever_score + skillScore;
                 let diffAcronym = diffAcronyms[difficulties.indexOf(music.difficulty)];
                 this.optimalDifficulty[music.music_id].push([score, diffAcronym]);
+            }
+        });
+    }
+
+    async loadAliases() {
+        const musicsJPJSON = await getGithub('https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/heads/main/musics.json');
+
+        musicsJPJSON.forEach(music => {
+            if(this.ids.has(music.id)) {
+                this.aliases[music.id].push(music.title);
+                let romaji = hepburn.fromKana(music.pronunciation)
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                this.aliases[music.id].push();
             }
         });
     }
