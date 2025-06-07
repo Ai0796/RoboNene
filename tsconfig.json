@@ -1,0 +1,10 @@
+// tsconfig.json
+{
+    "compilerOptions": {
+      "noEmitOnError": false,
+      "target": "es6",
+      "allowJs": true,
+      "outDir": "./dist",
+      "module": "commonjs",
+    }
+  }
