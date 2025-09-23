@@ -10,7 +10,7 @@ const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 
 function verify(inputStr) {
-    let regex = new RegExp('[0-9]+/[0-9]+$');
+    let regex = new RegExp('[0-9]+(/[0-9]+)?$');
     return regex.test(inputStr);
 }
 
@@ -42,7 +42,12 @@ module.exports = {
 
                 let splitStr = ISVString.split('/');
                 let lead = parseInt(splitStr[0]);
-                let team = parseInt(splitStr[1]);
+                var team;
+                if (splitStr.length >= 2) {
+                    team = parseInt(splitStr[1]);
+                } else {
+                    team = lead;
+                }
 
                 let equivalents = [];
                 let possibleISVs = [

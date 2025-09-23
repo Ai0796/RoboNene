@@ -16,7 +16,7 @@ module.exports = {
                 'type': 'string',
                 'name': 'isv',
                 'required': true,
-                'description': 'isv in the format {lead}/{team}'
+                'description': 'isv in the format {lead}/{team} or {boost}'
             }
         ],
     },
