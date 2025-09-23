@@ -59,6 +59,32 @@ module.exports = {
                         'description': 'The time you expect to leave the waitlist in minutes'
                     }
                 ]
+            },
+            {
+                'name': 'joinall',
+                'description': 'Joins all waitlists in the server of a selected song (active within 1 hour)',
+                'params': [
+                    {
+                        'type': 'string',
+                        'name': 'song',
+                        'required': true,
+                        'description': 'The song to join the waitlist for',
+                        'autocomplete': true
+                    }
+                ]
+            },
+            {
+                'name': 'list',
+                'description': 'Lists all waitlists in the server',
+                'params': [
+                    {
+                        'type': 'string',
+                        'name': 'song',
+                        'required': false,
+                        'description': 'The song to filter waitlists by',
+                        'autocomplete': true
+                    }
+                ]
             }
         ]
     },

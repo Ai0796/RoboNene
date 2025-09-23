@@ -20,8 +20,10 @@ let RATE_LIMIT = {}; // Rate limit is short, no need to store in file
 const BASEDATA = {
     'users': [],
     'message_id': null,
+    'server_id': null,
     'song': null, // song name
-    'leavers': {} // { user_id: timestamp }
+    'leavers': {}, // { user_id: timestamp }
+    'lastUse': 0
 };
 
 /**
@@ -31,7 +33,10 @@ const BASEDATA = {
  */
 
 function loadData() {
-    return JSON.parse(fs.readFileSync('./data/waitlist.json'));
+
+    let data = JSON.parse(fs.readFileSync('./data/waitlist.json'));
+
+    return data
 }
 
 function saveData(data) {
@@ -72,6 +77,7 @@ function addLeaving(data, server_id, user_id, minutes) {
 }
 
 function checkRateLimit(channel_id) {
+    return false; // Disable rate limit for now, as it is not needed
     const now = Date.now();
     if (RATE_LIMIT[channel_id] && now - RATE_LIMIT[channel_id] < 5000) {
         return true;
@@ -212,6 +218,84 @@ async function confirmJoin(interaction, nextUser, discordClient) {
     });
 }
 
+async function joinAll(interaction, discordClient, data, server_id, song) {
+    const user = interaction.user.id.toString();
+
+    let channelsJoined = [];
+
+    for (const [key, value] of Object.entries(data)) {
+        if (!value.server_id || value.server_id !== server_id) {
+            continue;
+        }
+        if (value.song === song && !value.users.includes(user)) {
+            data[key].users.push(user);
+            channelsJoined.push(key);
+        }
+    }
+
+    saveData(data);
+
+    return channelsJoined;
+}
+
+async function getChannelName(discordClient, channel_id) {
+    try {
+        let channel = await discordClient.client.channels.fetch(channel_id);
+        return channel.name;
+    } catch (e) {
+        console.error(e);
+        return 'Unknown Channel';
+    }
+}
+
+async function listAll(interaction, discordClient, data, song) {
+    let channels = [];
+    let timeCutoff = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
+
+    let guildId = interaction.guild.id.toString();
+
+    for (const [key, value] of Object.entries(data)) {
+
+        if (value.lastUse && value.lastUse < timeCutoff) {
+            continue;
+        }
+        if (song && value.song !== song) {
+            continue;
+        }
+
+        if (!value.server_id || value.server_id !== guildId) {
+            continue;
+        }
+
+        if (value.lastUse < timeCutoff) {
+            continue;
+        }
+
+        channels.push({
+            channel: key,
+            lastUse: value.lastUse,
+            userCount: value.users.length,
+            song: value.song || 'No song set'
+        });
+    }
+    
+    if (channels.length === 0) {
+        return 'No waitlists found with the inputs';
+    }
+
+    let description = '';
+
+    if (channels.length > 1) {
+        channels = channels.sort((a, b) => b.lastUse - a.lastUse); // Sort by last used
+    }
+
+    channels.forEach(channel => {
+        description += `<#${channel.channel}> <t:${channel.lastUse}:R> ${channel.userCount} in Queue \`${channel.song}\`\n`
+    });
+
+    await interaction.editReply({ content: description || 'No users found in waitlist' });
+}
+
 async function createWaitlist(interaction, discordClient) {
     const channel_id = interaction.channel.id.toString();
     const channel_name = interaction.channel.name;
@@ -232,7 +316,7 @@ async function createWaitlist(interaction, discordClient) {
 
     var embed;
     if (channel_name.includes('-xxxxx')) {
-        DATA[channel_id] = JSON.parse(JSON.stringify(BASEDATA));
+        DATA[channel_id] = JSON.parse(JSON.stringify(BASEDATA)); // Create new instance
 
         embed = await waitlistEmbed(DATA[channel_id], discordClient.client);
         embed['content'] = 'Due to lack of room code, the waitlist has been cleared';
@@ -240,6 +324,10 @@ async function createWaitlist(interaction, discordClient) {
         embed = await waitlistEmbed(DATA[channel_id], discordClient.client);
     }
 
+    DATA[channel_id].server_id = interaction.guild.id.toString();
+    DATA[channel_id].lastUse = Math.floor(Date.now() / 1000);
+
+    console.log('Waitlist created:', DATA[channel_id]);
 
     const message = await interaction.editReply(embed);
 
@@ -280,6 +368,8 @@ module.exports = {
         if (!DATA) {
             DATA = loadData();
         }
+
+        console.log('starting waitlist')
 
         if (interaction.options.getSubcommand() === 'show') {
             createWaitlist(interaction, discordClient);
@@ -328,6 +418,24 @@ module.exports = {
             addLeaving(DATA, channel_id, user_id, minutes);
 
             createWaitlist(interaction, discordClient);
+        } else if (interaction.options.getSubcommand() === 'joinall') {
+            // Do something
+            let song = interaction.options.getString('song');
+
+            let channels = await joinAll(interaction, discordClient, DATA, interaction.guild.id.toString(), song);
+
+            let channelList = channels.map((c) => `<#${c}>`).join('\n');
+
+            await interaction.editReply({ content: `You have been added to ${channels.length} waitlists for the song ${song}` });
+            if (channels.length > 0) {
+                await interaction.followUp({ content: channelList });
+            }
+
+        } else if (interaction.options.getSubcommand() === 'list') {
+            // Do something
+            let song = interaction.options.getString('song') ?? null;
+            
+            await listAll(interaction, discordClient, DATA, song);
         }
     },
 
@@ -356,5 +464,5 @@ module.exports = {
         await interaction.respond(choices.map((key) => {
             return { name: musicData.musics[key], value: musicData.musics[key] };
         }));
-    }
+    },
 };
