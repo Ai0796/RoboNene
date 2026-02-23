@@ -42,6 +42,42 @@ const getNextReset = (currentDate) => {
   return Math.floor(nextReset.toSeconds());
 };
 
+const getNextTwoMySekaiReset = (currentDate) => {
+
+  var nextReset = DateTime.now().setZone('America/Los_Angeles');
+
+  // There are two possible reset times each day for MySekai
+  let reset1 = nextReset.set({
+    hour: 5,
+    minutes: 0,
+    seconds: 0,
+    millisecond: 0
+  });
+
+  let reset2 = nextReset.set({
+    hour: 17,
+    minutes: 0,
+    seconds: 0,
+    millisecond: 0
+  });
+
+  if (reset1 > currentDate) {
+    nextReset = [ Math.floor(reset1.toSeconds()), Math.floor(reset2.toSeconds()) ];
+  } else if (reset2 > currentDate) {
+    nextReset = [ Math.floor(reset2.toSeconds()), Math.floor(reset1.set({
+      day: reset1.day + 1
+    }).toSeconds()) ];
+  } else {
+    nextReset = [ Math.floor(
+      reset1.set({day: reset1.day + 1
+    }).toSeconds()), Math.floor(
+      reset2.set({day: reset2.day + 1
+    }).toSeconds()) ];
+  }
+
+  return nextReset;
+}
+
 const addEvent = (event, gameCharacters, worldBlooms, embed) => {
   let startTime = Math.floor(event.startAt / 1000);
   let aggregateTime = Math.floor(event.aggregateAt / 1000);
@@ -100,9 +136,10 @@ const getFutureGachas = () => {
  * @param {DiscordClient} client the Discord Client we are recieving / sending requests to
  * @return {MessageEmbed} the embed that we will display to the user
  */
-const createScheduleEmbed = (showVLive, eventData, vLiveData, gameCharacters, worldBlooms, client) => {
+const createScheduleEmbed = (eventData, gameCharacters, worldBlooms, client) => {
   let currentDate = new Date();
   let nextReset = getNextReset(currentDate);
+  let nextMySekaiResets = getNextTwoMySekaiReset(currentDate);
   let currentEventIdx = -1;
   let nextEventIdx = -1;
 
@@ -126,7 +163,8 @@ const createScheduleEmbed = (showVLive, eventData, vLiveData, gameCharacters, wo
     .setTitle('Event Schedule Nyaa~')
     .addFields(
       { name: '**__Next Daily Reset__**', value: `<t:${nextReset}> - <t:${nextReset}:R>` },
-      { name: '** **', value: '** **' },
+      { name: '**__Next MySekai Reset__**', value: `<t:${nextMySekaiResets[0]}> - <t:${nextMySekaiResets[0]}:R>` },
+      { name: '**__Subsequent MySekai Reset__**', value: `<t:${nextMySekaiResets[1]}> - <t:${nextMySekaiResets[1]}:R>` },
     )
     .setTimestamp()
     .setFooter({text: FOOTER, iconURL: client.user.avatar_url});
@@ -187,16 +225,18 @@ const createScheduleEmbed = (showVLive, eventData, vLiveData, gameCharacters, wo
       { name: '**__Future Gachas__**', value: gachaStr },
     );
   }
+  
+  return scheduleEmbed;
+};
 
-  if (showVLive === false) {
-    return scheduleEmbed;
-  }
+const createVirtualLiveEmbed = (vLiveData, client) => {
+  let vLiveEmbed = new EmbedBuilder()
+    .setColor(NENE_COLOR)
+    .setTitle('Virtual Live Schedule Nyaa~')
+    .setTimestamp()
+    .setFooter({text: FOOTER, iconURL: client.user.avatar_url});
 
-  // Add a spacer between the gacha and virtual live schedules
-  scheduleEmbed.addFields({ name: '** **', value: '** **' });
-
-  //Virtual Live Schedule
-
+  let currentDate = new Date();
   let runningVLives = [];
 
   for (let i = 0; i < vLiveData.length; i++) {
@@ -225,18 +265,18 @@ const createScheduleEmbed = (showVLive, eventData, vLiveData, gameCharacters, wo
 
       let nextLives = lives.slice(currentLiveIdx);
 
-      scheduleEmbed.addFields(
+      vLiveEmbed.addFields(
         { name: '**__Virtual Live__**', value: `${vLiveData[vLiveIdx]['name']}` },
         { name: 'Show Times', value: nextLives.map((x) => `<t:${x['startAt']}:R> at <t:${x['startAt']}:f>`).join('\n') },
       );
     });
   } else {
-    scheduleEmbed.addFields(
+    vLiveEmbed.addFields(
       { name: '**__Virtual Live__**', value: 'No Virtual Lives Currently Running' },
     );
   }
 
-  return scheduleEmbed;
+  return vLiveEmbed;
 };
 
 module.exports = {
@@ -248,13 +288,19 @@ module.exports = {
       ephemeral: COMMAND.INFO.ephemeral
     });
 
-    let showVirtualLives = interaction.options.getBoolean('show-vlive') ?? true;
+    let showVirtualLives = interaction.options.getBoolean('show-vlive') ?? false;
 
     const events = JSON.parse(fs.readFileSync('./sekai_master/events.json'));
     const virtualLives = JSON.parse(fs.readFileSync('./sekai_master/virtualLives.json'));
     const gameCharacters = JSON.parse(fs.readFileSync('./sekai_master/gameCharacters.json'));
     const worldBlooms = JSON.parse(fs.readFileSync('./sekai_master/worldBlooms.json'));
-    const scheduleEmbed = createScheduleEmbed(showVirtualLives, events, virtualLives, gameCharacters, worldBlooms, discordClient.client);
-    await interaction.editReply({ embeds: [scheduleEmbed] });
+    const embeds = createScheduleEmbed(events, gameCharacters, worldBlooms, discordClient.client);
+    
+    await interaction.editReply({ embeds: [embeds] });
+
+    if (showVirtualLives) {
+      const vLiveEmbed = createVirtualLiveEmbed(virtualLives, discordClient.client);
+      await interaction.followUp({ embeds: [vLiveEmbed] });
+    }
   }    
 };
