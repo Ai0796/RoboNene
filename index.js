@@ -16,14 +16,12 @@ const fs = require('fs');
 const { trackTwitterData } = require('./scripts/trackTwitterData');
 
 loadMusicMeta(0);
-loadGameData(0, async () => {
+loadGameData(50, async () => {
   const client = new DiscordClient();
   client.loadCommands();
   client.loadEvents();
   client.loadDb();
   client.loadCutoffDb();
-  client.loadPrayerDb();
-  client.loadStockDb();
   client.loadLogger();
   // client.loadMessageHandler();
   client.loadServerHandler();
@@ -38,8 +36,12 @@ loadGameData(0, async () => {
   // trackCutoffData(client);
   // trackUserCutoffs(client);
   trackTierData(client);
-  trackTwitterData(client);
+  // trackTwitterData(client);
+
+  // Lower Priority Tasks
   updateActivity(client);
+  client.loadPrayerDb();
+  client.loadStockDb();
 
   //This is a very duct tape solution
   if(fs.existsSync('messages.json')) {
