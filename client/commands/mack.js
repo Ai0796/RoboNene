@@ -61,7 +61,7 @@ const phrases = [
 
 module.exports = {
     ...COMMAND.INFO,
-    data: generateSlashCommand(COMMAND.INFO),
+    // data: generateSlashCommand(COMMAND.INFO),
 
     async execute(interaction, discordClient) {
         // await interaction.reply("test")
@@ -70,4 +70,3 @@ module.exports = {
         await interaction.reply(`Mackaylen has had ${moments} moments, ${phrases[Math.floor(Math.random() * phrases.length)]}`);
     }
 };
-

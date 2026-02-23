@@ -46,7 +46,7 @@ function getBonks(reset) {
 
 module.exports = {
     ...COMMAND.INFO,
-    data: generateSlashCommand(COMMAND.INFO),
+    // data: generateSlashCommand(COMMAND.INFO),
 
     async execute(interaction, discordClient) {
         // await interaction.reply("test")
