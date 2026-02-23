@@ -46,3 +46,8 @@ Arial.ttf
 /*.csv
 /*.txt
 /*.json
+
+# Keys
+github
+*.pub
+*.key
