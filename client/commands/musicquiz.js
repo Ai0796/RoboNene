@@ -308,7 +308,7 @@ module.exports = {
            if (reason === 'time' && tries < maxTries) { // Assuming 'tries' is updated externally or passed through state
               const timeoutContent = {
                   type: COMMAND.CONSTANTS.QUESTION_TIMEOUT_TYPE,
-                  message: COMMAND.CONSTANTS.QUESTION_TIMEOUT_MSG + ` The song was: \`${songActual}\``
+                message: COMMAND.CONSTANTS.QUESTION_TIMEOUT_MSG + ` The song was: \`${musicData.musics[songId]}\``
               };
 
               await interaction.editReply({
