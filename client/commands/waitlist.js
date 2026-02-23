@@ -220,11 +220,15 @@ async function confirmJoin(interaction, nextUser, discordClient) {
 
 async function joinAll(interaction, discordClient, data, server_id, song) {
     const user = interaction.user.id.toString();
+    let timeCutoff = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
 
     let channelsJoined = [];
 
     for (const [key, value] of Object.entries(data)) {
         if (!value.server_id || value.server_id !== server_id) {
+            continue;
+        }
+        if (value.lastUse < timeCutoff) {
             continue;
         }
         if (value.song === song && !value.users.includes(user)) {
@@ -283,17 +287,26 @@ async function listAll(interaction, discordClient, data, song) {
         return 'No waitlists found with the inputs';
     }
 
-    let description = '';
+    let descriptions = [];
 
     if (channels.length > 1) {
         channels = channels.sort((a, b) => b.lastUse - a.lastUse); // Sort by last used
     }
 
     channels.forEach(channel => {
-        description += `<#${channel.channel}> <t:${channel.lastUse}:R> ${channel.userCount} in Queue \`${channel.song}\`\n`
+        descriptions.push(`<#${channel.channel}> <t:${channel.lastUse}:R> ${channel.userCount} in Queue \`${channel.song}\``);
     });
 
-    await interaction.editReply({ content: description || 'No users found in waitlist' });
+    await interaction.editReply({ content: descriptions.slice(0, 20).join('\n') || 'No users found in waitlist', ephemeral: true });
+
+    descriptions = descriptions.slice(20);
+
+    if (descriptions.length > 0) {
+        while (descriptions.length > 20) {
+            descriptions = descriptions.slice(20);
+            await interaction.followUp({ content: descriptions.slice(0, 20).join('\n'), ephemeral: true });
+        }
+    }
 }
 
 async function createWaitlist(interaction, discordClient) {
@@ -315,7 +328,7 @@ async function createWaitlist(interaction, discordClient) {
     }
 
     var embed;
-    if (channel_name.includes('-xxxxx')) {
+    if (channel_name.includes('-xxxxxasdfklasdfjalwkejfwekqlr')) { // disable this for now
         DATA[channel_id] = JSON.parse(JSON.stringify(BASEDATA)); // Create new instance
 
         embed = await waitlistEmbed(DATA[channel_id], discordClient.client);
@@ -355,6 +368,73 @@ async function createWaitlist(interaction, discordClient) {
     saveData(DATA);
 }
 
+async function waitlistClear(discordClient, interaction, channel_id) {
+    if (!DATA) {
+        DATA = loadData();
+    }
+
+    // If last use is more than 1 hour ago, clear the waitlist
+    if (DATA[channel_id].lastUse && (Date.now()/1000 - DATA[channel_id].lastUse) > 3600) {
+        DATA[channel_id] = JSON.parse(JSON.stringify(BASEDATA));
+        saveData(DATA);
+        interaction.editReply({ content: 'Waitlist cleared', ephemeral: true });
+        return; // Only clear if not used in the last hour
+    }
+
+    // If used within the last hour, send notification to prevent trolls
+    else {
+        try {
+            let embed = new EmbedBuilder()
+                .setColor(NENE_COLOR)
+                .setTitle('Waitlist Cleared')
+                .setDescription('Waitlist Clear Requested, please click the button to cancel within 3 minutes to prevent accidental clears.')
+                .setTimestamp()
+                .setFooter({ text: FOOTER, iconURL: discordClient.client.user.displayAvatarURL() });
+
+            const cancelButton = new ButtonBuilder()
+                .setStyle('Danger')
+                .setLabel('Cancel Clear')
+                .setCustomId('cancelClear');
+
+            const actionRow = new ActionRowBuilder()
+                .addComponents(cancelButton);
+
+            const message = await interaction.editReply({ embeds: [embed], components: [actionRow], ephemeral: true });
+
+            let cleared = true;
+
+            const filter = (i) => {
+                return i.message.id === message.id && i.customId === 'cancelClear';
+            };
+
+            const collector = interaction.channel.createMessageComponentCollector({
+                filter: filter,
+                componentType: ComponentType.Button,
+                time: 180000 // 3 minutes
+            });
+
+            collector.on('collect', async (i) => {
+                cleared = false;
+                await i.update({ content: 'Waitlist clear cancelled', components: [], embeds: [] });
+            });
+
+            collector.on('end', async () => {
+                if (cleared) {
+                    DATA[channel_id] = JSON.parse(JSON.stringify(BASEDATA));
+                    saveData(DATA);
+                    try {
+                        await message.edit({ content: 'Waitlist cleared', components: [], embeds: [] });
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
 module.exports = {
     ...COMMAND.INFO,
     data: generateSlashCommand(COMMAND.INFO),
@@ -384,10 +464,8 @@ module.exports = {
 
         } else if (interaction.options.getSubcommand() === 'clear') {
             let channel_id = interaction.channel.id.toString();
-            DATA[channel_id].users = [];
-            DATA[channel_id].song = null;
-            DATA[channel_id].leavers = {};
-            createWaitlist(interaction, discordClient);
+
+            waitlistClear(discordClient, interaction, channel_id);
 
         } else if (interaction.options.getSubcommand() === 'leave') {
 
@@ -401,7 +479,7 @@ module.exports = {
             let song = interaction.options.getString('song');
             let channel_id = interaction.channel.id.toString();
 
-            if (!Object.values(musicData.musics).includes(song) && song !== 'Omakase (Random)') {
+            if (!Object.values(musicData.musics).includes(song) && song !== 'Omakase (Random)' && song.toLowerCase() !== 'minecraft') {
                 await interaction.editReply({ content: `Invalid song ${song}` });
                 return;
             }
@@ -426,9 +504,9 @@ module.exports = {
 
             let channelList = channels.map((c) => `<#${c}>`).join('\n');
 
-            await interaction.editReply({ content: `You have been added to ${channels.length} waitlists for the song ${song}` });
+            await interaction.editReply({ content: `You have been added to ${channels.length} waitlists for the song ${song}`, ephemeral: true});
             if (channels.length > 0) {
-                await interaction.followUp({ content: channelList });
+                await interaction.followUp({ content: channelList, ephemeral: true });
             }
 
         } else if (interaction.options.getSubcommand() === 'list') {
@@ -441,7 +519,7 @@ module.exports = {
 
     async autocomplete(interaction, discordClient) {
         let focus = interaction.options.getFocused();
-        console.log(focus);
+
         if (focus == '') {
             await interaction.respond([
                 { name: 'Hitorinbo Envy', value: 'Hitorinbo Envy' },
