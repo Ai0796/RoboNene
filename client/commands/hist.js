@@ -11,6 +11,7 @@ const COMMAND = require('../command_data/hist');
 const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 const getEventData = require('../methods/getEventData');
+const getWorldBloomAutocomplete = require('../methods/getWorldBloomAutocomplete');
 
 const renderPlotlyImage = require('../../scripts/plotly_puppet.js');
 
@@ -559,14 +560,7 @@ module.exports = {
 
   async autocomplete(interaction, discordClient) {
 
-    let world_blooms = discordClient.getAllWorldLinkChapters();
-
-    let options = world_blooms.map((chapter, i) => {
-      return {
-        name: chapter.character,
-        value: chapter.id,
-      };
-    });
+    let options = await getWorldBloomAutocomplete(discordClient, interaction.options.getFocused());
 
     await interaction.respond(options);
   }
