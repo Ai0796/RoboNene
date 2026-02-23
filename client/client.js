@@ -57,6 +57,7 @@ class DiscordClient {
 
     this.rateLimit = {};
     this.cutoffCache = null;
+    this.errorCount = 0;
 
     this.client = new Client({ 
       intents: [
@@ -450,6 +451,16 @@ class DiscordClient {
           if (response.rankings && response.rankings.length !== 0) {
             console.log('Saving Cache at ' + Date.now().toString());
             this.cutoffCache = {response: response, timestamp: Date.now()}; // Update the cache to be used by leaderboard
+            this.errorCount = 0; // Reset error count on successful response
+          }
+        } else {
+          request.error('Failed to fetch ranking data');
+          this.errorCount += 1;
+
+          if (this.errorCount >= 10) {
+            // If we've had 10 consective errors, try to refresh the clients
+            this.api = [];
+            await this.loadSekaiClient();
           }
         }
       } else if (request.type === 'border') {
@@ -554,6 +565,7 @@ class DiscordClient {
 
     worldLink.forEach((x) => {
       x.character = `${this.getCharacterName(x.gameCharacterId)} (Event ${x.eventId})`;
+      x.name = this.getCharacterName(x.gameCharacterId);
     });
 
     return worldLink;
