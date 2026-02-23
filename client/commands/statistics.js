@@ -9,6 +9,7 @@ const generateSlashCommand = require('../methods/generateSlashCommand');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { NENE_COLOR, FOOTER, LOCKED_EVENT_ID } = require('../../constants');
 const getEventData = require('../methods/getEventData');
+const getWorldBloomAutocomplete = require('../methods/getWorldBloomAutocomplete');
 
 const HOUR = 3600000;
 
@@ -17,9 +18,9 @@ const energyBoost = [
     5,
     10,
     15,
-    19,
-    23,
-    26,
+    20,
+    25,
+    27,
     29,
     31,
     33,
@@ -443,14 +444,7 @@ module.exports = {
 
     async autocomplete(interaction, discordClient) {
 
-        let world_blooms = discordClient.getAllWorldLinkChapters();
-
-        let options = world_blooms.map((chapter, i) => {
-            return {
-                name: chapter.character,
-                value: chapter.id,
-            };
-        });
+        let options = await getWorldBloomAutocomplete(discordClient, interaction.options.getFocused());
 
         await interaction.respond(options);
     }

@@ -13,6 +13,7 @@ const generateEmbed = require('../methods/generateEmbed');
 const getEventData = require('../methods/getEventData');
 
 const renderPlotlyImage = require('../../scripts/plotly_puppet.js');
+const getWorldBloomAutocomplete = require('../methods/getWorldBloomAutocomplete');
 
 
 const HOUR = 3600000; 
@@ -24,6 +25,7 @@ const formatPallete = (colors) => {
   colors.forEach((color, i) => {
     formatted.push([(distance * i).toFixed(3), color]);
   });
+
   return formatted;
 };
 
@@ -732,6 +734,322 @@ const postRabbit = async (interaction, title, eventData, offset, pallete, annota
   });
 };
 
+const postIroha = async (interaction, title, eventData, offset, pallete, annotategames, bypoints, discordClient) =>  {
+  let maxGamesPerHour = 31;
+
+  let xValues = [];
+  let yValues = [];
+
+  const weekday = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  let daysofweek = [];
+
+  let heatmapData = [
+    [0, 0, 0, 0, 0, 0, 24, 22, 22, 22, 22, 24, 22, 22, 22, 26, 10, 26, 22, 18, 6, 18, 22, 22, 22, 22, 18, 10, 26, 22, 22, 22, 22, 22, 18, 10, 6, 8, 18, 18, 18, 18, 22, 22, 26, 10, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 18, 22, 22, 26, 22, 18, 22, 22, 22, 18, 10, 10, 22, 18, 10, 18, 26, 18, 22, 24, 22, 18, 18, 22, 18, 22, 22, 22, 22, 18, 14, 16, 8, 10, 10, 10, 22, 22, 24, 10, 0, 0, 0, 0, 0, 0],
+    [0, 0, 16, 28, 18, 0, 10, 26, 22, 22, 22, 24, 22, 22, 14, 26, 26, 10, 22, 22, 10, 10, 22, 22, 22, 24, 10, 14, 10, 18, 22, 22, 22, 18, 10, 10, 12, 6, 18, 22, 22, 22, 22, 22, 24, 16, 0, 22, 31, 18, 0, 0],
+    [0, 0, 0, 0, 0, 31, 0, 10, 18, 18, 24, 10, 26, 18, 12, 26, 26, 26, 18, 18, 10, 26, 24, 26, 10, 10, 16, 16, 16, 10, 18, 18, 18, 10, 16, 16, 4, 0, 18, 22, 22, 22, 26, 24, 10, 0, 28, 22, 16, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 18, 18, 8, 10, 0, 0, 0, 8, 4, 26, 26, 26, 24, 26, 24, 14, 14, 14, 18, 18, 18, 18, 14, 14, 10, 10, 12, 16, 16, 16, 12, 18, 10, 10, 10, 24, 10, 8, 22, 18, 22, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 18, 18, 18, 0, 0, 0, 0, 6, 14, 26, 26, 26, 14, 10, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 14, 12, 16, 16, 16, 4, 6, 0, 0, 0, 0, 0, 18, 28, 0, 0, 0, 0, 0, 0, 0],
+    [0, 18, 18, 0, 0, 0, 0, 0, 0, 0, 6, 4, 12, 16, 18, 18, 16, 14, 18, 18, 18, 16, 18, 18, 16, 18, 18, 18, 18, 18, 18, 18, 18, 18, 14, 18, 18, 18, 26, 14, 4, 18, 0, 0, 0, 0, 0, 0, 0, 0, 18, 0],
+    [0, 0, 18, 31, 22, 18, 0, 0, 0, 0, 12, 16, 16, 18, 16, 10, 18, 18, 18, 18, 16, 18, 14, 14, 14, 18, 6, 6, 6, 6, 14, 18, 18, 18, 18, 18, 14, 26, 18, 26, 26, 6, 0, 0, 0, 0, 0, 18, 26, 31, 26, 0],
+    [0, 0, 0, 0, 16, 18, 28, 0, 0, 0, 16, 16, 18, 18, 10, 18, 18, 18, 18, 18, 12, 12, 12, 12, 18, 18, 12, 12, 12, 12, 12, 10, 18, 18, 18, 18, 18, 14, 18, 18, 26, 26, 0, 0, 0, 18, 31, 18, 22, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 6, 16, 16, 16, 18, 18, 18, 18, 18, 10, 12, 12, 12, 12, 18, 18, 12, 12, 12, 12, 12, 12, 14, 18, 18, 18, 18, 18, 18, 26, 26, 6, 0, 0, 0, 22, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 28, 28, 28, 28, 6, 16, 18, 18, 18, 18, 12, 12, 12, 12, 12, 14, 18, 16, 26, 6, 12, 12, 12, 6, 26, 14, 18, 18, 18, 18, 10, 12, 28, 28, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 18, 28, 18, 31, 18, 31, 0, 28, 28, 28, 28, 2, 18, 18, 18, 18, 18, 26, 26, 26, 14, 14, 14, 18, 14, 18, 26, 14, 6, 12, 18, 18, 26, 18, 18, 18, 18, 18, 4, 28, 28, 28, 28, 0, 28, 22, 18, 22, 18, 0, 0],
+    [0, 0, 16, 0, 0, 0, 0, 14, 28, 28, 28, 14, 16, 18, 18, 18, 18, 26, 18, 18, 26, 26, 18, 14, 18, 14, 18, 18, 18, 18, 14, 10, 18, 18, 18, 18, 18, 18, 18, 4, 28, 28, 28, 28, 28, 16, 16, 22, 18, 18, 22, 0],
+    [0, 0, 0, 0, 0, 0, 0, 28, 28, 28, 12, 4, 18, 18, 18, 18, 18, 14, 14, 14, 26, 26, 18, 14, 18, 14, 18, 18, 16, 18, 18, 26, 10, 18, 16, 18, 18, 18, 18, 18, 4, 28, 28, 28, 28, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 8, 14, 16, 18, 26, 16, 18, 18, 18, 18, 14, 18, 18, 18, 18, 26, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 26, 18, 18, 18, 18, 18, 18, 10, 26, 18, 16, 6, 28, 0, 0, 0, 0, 0, 0],
+    [0, 0, 18, 18, 22, 31, 0, 6, 16, 18, 26, 18, 18, 18, 18, 18, 14, 18, 18, 18, 18, 26, 18, 18, 14, 18, 18, 18, 18, 16, 18, 18, 18, 18, 26, 14, 18, 18, 18, 18, 14, 26, 18, 4, 28, 28, 28, 0, 16, 0, 0, 0],
+    [0, 0, 18, 18, 0, 0, 28, 28, 12, 4, 14, 18, 18, 18, 18, 18, 26, 18, 18, 18, 18, 18, 14, 18, 18, 10, 18, 18, 18, 14, 18, 18, 18, 18, 26, 10, 18, 18, 18, 18, 18, 14, 4, 28, 28, 28, 0, 26, 26, 31, 0, 0],
+    [0, 0, 0, 0, 0, 28, 28, 28, 28, 28, 4, 18, 18, 18, 18, 16, 18, 18, 18, 18, 16, 18, 14, 18, 18, 18, 18, 18, 18, 14, 18, 12, 14, 18, 14, 14, 18, 18, 18, 18, 18, 12, 28, 28, 28, 28, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 14, 28, 28, 28, 28, 28, 4, 18, 18, 18, 18, 14, 18, 6, 4, 6, 6, 6, 26, 24, 18, 18, 18, 18, 14, 26, 6, 6, 6, 6, 14, 18, 18, 18, 18, 18, 18, 6, 28, 28, 28, 28, 0, 0, 16, 28, 0, 0],
+    [0, 0, 0, 28, 28, 14, 6, 28, 28, 28, 4, 18, 26, 26, 26, 10, 18, 6, 18, 18, 18, 18, 10, 18, 18, 10, 18, 18, 18, 10, 18, 18, 18, 18, 12, 18, 26, 26, 26, 26, 18, 6, 28, 28, 4, 6, 28, 28, 14, 0, 0, 0],
+    [0, 0, 0, 28, 28, 14, 16, 12, 28, 28, 4, 18, 26, 26, 26, 10, 10, 10, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 10, 14, 26, 26, 26, 26, 16, 12, 28, 12, 18, 4, 2, 28, 28, 0, 0, 0],
+    [0, 0, 28, 28, 28, 6, 6, 18, 2, 28, 6, 18, 26, 26, 26, 14, 26, 18, 26, 26, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 26, 26, 26, 18, 26, 26, 26, 26, 26, 12, 14, 12, 12, 18, 6, 14, 28, 28, 14, 0, 0],
+    [0, 0, 28, 28, 2, 16, 6, 12, 12, 6, 4, 14, 18, 26, 26, 26, 16, 26, 26, 26, 26, 18, 18, 20, 26, 18, 18, 26, 20, 18, 26, 26, 26, 24, 26, 14, 26, 26, 26, 18, 12, 16, 6, 12, 12, 12, 16, 2, 28, 28, 0, 0],
+    [0, 0, 28, 2, 16, 14, 12, 12, 12, 18, 12, 24, 14, 18, 14, 26, 26, 26, 26, 26, 26, 26, 20, 26, 26, 26, 26, 26, 26, 20, 26, 26, 26, 26, 26, 26, 18, 14, 18, 26, 10, 14, 12, 12, 12, 12, 18, 14, 28, 28, 0, 0],
+    [0, 0, 28, 28, 6, 18, 12, 12, 4, 18, 16, 14, 18, 10, 14, 26, 26, 26, 26, 24, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 18, 26, 26, 26, 26, 26, 18, 26, 14, 18, 14, 12, 16, 12, 12, 12, 16, 14, 28, 28, 0, 0],
+    [0, 0, 28, 28, 16, 6, 12, 12, 16, 18, 12, 14, 18, 14, 14, 16, 26, 26, 26, 26, 26, 18, 26, 26, 26, 26, 26, 26, 26, 26, 18, 18, 26, 26, 26, 18, 10, 14, 14, 16, 18, 12, 18, 4, 12, 12, 6, 4, 28, 28, 0, 0],
+    [0, 0, 28, 28, 28, 28, 6, 6, 16, 14, 16, 16, 10, 18, 26, 10, 18, 26, 26, 18, 18, 18, 26, 26, 26, 26, 26, 26, 26, 26, 18, 18, 18, 18, 18, 18, 14, 26, 10, 16, 16, 12, 18, 16, 12, 4, 28, 28, 28, 14, 0, 0],
+    [0, 0, 28, 28, 28, 28, 6, 18, 18, 18, 18, 12, 16, 14, 18, 18, 14, 14, 18, 18, 18, 18, 24, 26, 26, 26, 26, 26, 26, 20, 18, 18, 18, 18, 10, 14, 18, 18, 16, 16, 16, 12, 16, 18, 12, 28, 28, 28, 26, 0, 0, 0],
+    [0, 0, 0, 28, 28, 28, 4, 18, 18, 16, 18, 16, 16, 14, 18, 18, 14, 18, 18, 18, 18, 18, 18, 20, 26, 26, 26, 26, 20, 18, 18, 18, 18, 14, 26, 16, 18, 18, 16, 18, 12, 18, 12, 18, 18, 12, 28, 28, 28, 0, 0, 0],
+    [0, 28, 0, 28, 28, 28, 12, 18, 12, 12, 16, 16, 18, 16, 18, 18, 14, 26, 26, 10, 10, 18, 18, 18, 18, 26, 18, 18, 18, 18, 14, 10, 24, 26, 18, 18, 18, 18, 16, 16, 16, 14, 16, 18, 16, 2, 28, 28, 28, 14, 0, 0],
+    [0, 26, 28, 28, 28, 28, 18, 18, 12, 12, 16, 16, 18, 18, 18, 18, 18, 26, 26, 26, 26, 18, 14, 12, 10, 10, 14, 14, 12, 12, 16, 18, 26, 26, 26, 18, 18, 14, 18, 12, 16, 18, 16, 16, 18, 6, 28, 28, 28, 28, 0, 0],
+    [0, 0, 28, 28, 28, 28, 12, 18, 12, 12, 12, 12, 18, 18, 18, 18, 18, 14, 16, 18, 18, 18, 12, 18, 14, 26, 16, 26, 16, 12, 16, 18, 18, 18, 18, 18, 10, 18, 18, 16, 12, 12, 16, 14, 14, 2, 28, 28, 28, 28, 0, 0],
+    [0, 14, 28, 28, 28, 28, 6, 12, 12, 12, 18, 16, 12, 18, 18, 16, 18, 18, 18, 18, 18, 18, 12, 18, 12, 18, 18, 18, 18, 12, 16, 16, 18, 18, 18, 14, 18, 18, 18, 18, 16, 16, 16, 12, 12, 12, 28, 28, 28, 28, 0, 0],
+];
+
+heatmapData.reverse();
+
+for (let i = 0; i < heatmapData.length; i++) {
+  let date = new Date((eventData.startAt + (i * DAY)));
+  if (offset < 15) date.setDate(date.getDate() + + 1);
+
+  daysofweek.push(weekday[date.getDay()]);
+}
+
+for (let i = 0; i < 32; i++) {
+  xValues.push(i + 0.5);
+}
+
+for (let i = 0; i < heatmapData.length; i++) {
+  yValues.unshift(`${daysofweek[i]} Day ${i + 1}`);
+}
+
+let trace1 = {
+  mode: 'markers',
+  type: 'heatmap',
+  x: xValues,
+  y: yValues,
+  z: heatmapData,
+  ytype: 'array',
+  zauto: false,
+  opacity: 1,
+  visible: true,
+  xperiod: 0,
+  yperiod: 0,
+  zsmooth: false,
+  hoverongaps: false,
+  reversescale: true,
+  colorscale: formatPallete([
+    "#000000",
+    "#291814",
+    "#422136",
+    "#49333B",
+    "#742F29",
+    "#AB5236",
+    "#5F574F",
+    "#A28879",
+    "#C2C3C7",
+    "#FFF1E8",
+    "#FF6E59",
+    "#FF6C24",
+    "#FF9D81",
+    "#FFCCAA",
+    "#F3EF7D",
+    "#FFEC27"
+  ].reverse()),
+  xgap: 0.3,
+  ygap: 0.3,
+  autocolorscale: false,
+  zmin: 0,
+  zmax: maxGamesPerHour,
+};
+
+let layout = {
+  title: { text: title },
+  xaxis: {
+    title: 'Hour',
+    side: 'top',
+    dtick: 1
+  },
+  yaxis: {
+    title: 'Day',
+    type: 'category'
+  },
+  annotations: [],
+  legend: { title: { text: '<br>' } },
+  autosize: true,
+  colorway: ['#b3e2cd', '#fdcdac', '#cbd5e8', '#f4cae4', '#e6f5c9', '#fff2ae', '#f1e2cc', '#cccccc'],
+  dragmode: 'zoom',
+  template: {
+    data: {
+      heatmap: [
+        {
+          type: 'heatmap',
+          colorbar: {
+            ticks: '',
+            outlinewidth: 0
+          },
+          autocolorscale: true
+        }
+      ]
+    },
+    layout: {
+      geo: {
+        bgcolor: 'rgb(17,17,17)',
+        showland: true,
+        lakecolor: 'rgb(17,17,17)',
+        landcolor: 'rgb(17,17,17)',
+        showlakes: true,
+        subunitcolor: '#506784'
+      },
+      font: { color: '#f2f5fa' },
+      polar: {
+        bgcolor: 'rgb(17,17,17)',
+        radialaxis: {
+          ticks: '',
+          gridcolor: '#506784',
+          linecolor: '#506784'
+        },
+        angularaxis: {
+          ticks: '',
+          gridcolor: '#506784',
+          linecolor: '#506784'
+        }
+      },
+      scene: {
+        xaxis: {
+          ticks: '',
+          gridcolor: '#506784',
+          gridwidth: 2,
+          linecolor: '#506784',
+          zerolinecolor: '#C8D4E3',
+          showbackground: true,
+          backgroundcolor: 'rgb(17,17,17)'
+        },
+        yaxis: {
+          ticks: '',
+          gridcolor: '#506784',
+          gridwidth: 2,
+          linecolor: '#506784',
+          zerolinecolor: '#C8D4E3',
+          showbackground: true,
+          backgroundcolor: 'rgb(17,17,17)'
+        },
+        zaxis: {
+          ticks: '',
+          gridcolor: '#506784',
+          gridwidth: 2,
+          linecolor: '#506784',
+          zerolinecolor: '#C8D4E3',
+          showbackground: true,
+          backgroundcolor: 'rgb(17,17,17)'
+        }
+      },
+      title: { x: 0.05 },
+      xaxis: {
+        ticks: '',
+        gridcolor: '#283442',
+        linecolor: '#506784',
+        automargin: true,
+        zerolinecolor: '#283442',
+        zerolinewidth: 2
+      },
+      yaxis: {
+        ticks: '',
+        gridcolor: '#283442',
+        linecolor: '#506784',
+        automargin: true,
+        zerolinecolor: '#283442',
+        zerolinewidth: 2
+      },
+      ternary: {
+        aaxis: {
+          ticks: '',
+          gridcolor: '#506784',
+          linecolor: '#506784'
+        },
+        baxis: {
+          ticks: '',
+          gridcolor: '#506784',
+          linecolor: '#506784'
+        },
+        caxis: {
+          ticks: '',
+          gridcolor: '#506784',
+          linecolor: '#506784'
+        },
+        bgcolor: 'rgb(17,17,17)'
+      },
+      colorway: ['#636efa', '#EF553B', '#00cc96', '#ab63fa', '#19d3f3', '#e763fa', '#fecb52', '#ffa15a', '#ff6692', '#b6e880'],
+      hovermode: 'closest',
+      colorscale: {
+        diverging: [['0', '#8e0152'], ['0.1', '#c51b7d'], ['0.2', '#de77ae'], ['0.3', '#f1b6da'], ['0.4', '#fde0ef'], ['0.5', '#f7f7f7'], ['0.6', '#e6f5d0'], ['0.7', '#b8e186'], ['0.8', '#7fbc41'], ['0.9', '#4d9221'], ['1', '#276419']],
+        sequential: [['0', '#0508b8'], ['0.0893854748603352', '#1910d8'], ['0.1787709497206704', '#3c19f0'], ['0.2681564245810056', '#6b1cfb'], ['0.3575418994413408', '#981cfd'], ['0.44692737430167595', '#bf1cfd'], ['0.5363128491620112', '#dd2bfd'], ['0.6256983240223464', '#f246fe'], ['0.7150837988826816', '#fc67fd'], ['0.8044692737430168', '#fe88fc'], ['0.8938547486033519', '#fea5fd'], ['0.9832402234636871', '#febefe'], ['1', '#fec3fe']],
+        sequentialminus: [['0', '#0508b8'], ['0.0893854748603352', '#1910d8'], ['0.1787709497206704', '#3c19f0'], ['0.2681564245810056', '#6b1cfb'], ['0.3575418994413408', '#981cfd'], ['0.44692737430167595', '#bf1cfd'], ['0.5363128491620112', '#dd2bfd'], ['0.6256983240223464', '#f246fe'], ['0.7150837988826816', '#fc67fd'], ['0.8044692737430168', '#fe88fc'], ['0.8938547486033519', '#fea5fd'], ['0.9832402234636871', '#febefe'], ['1', '#fec3fe']]
+      },
+      plot_bgcolor: 'rgb(17,17,17)',
+      paper_bgcolor: 'rgb(17,17,17)',
+      shapedefaults: {
+        line: { width: 0 },
+        opacity: 0.4,
+        fillcolor: '#f2f5fa'
+      },
+      sliderdefaults: {
+        bgcolor: '#C8D4E3',
+        tickwidth: 0,
+        bordercolor: 'rgb(17,17,17)',
+        borderwidth: 1
+      },
+      annotationdefaults: {
+        arrowhead: 0,
+        arrowcolor: '#f2f5fa',
+        arrowwidth: 1
+      },
+      updatemenudefaults: {
+        bgcolor: '#506784',
+        borderwidth: 0
+      }
+    },
+    themeRef: 'PLOTLY_DARK'
+  },
+  hovermode: 'closest',
+  colorscale: {
+    diverging: [['0', '#40004b'], ['0.1', '#762a83'], ['0.2', '#9970ab'], ['0.3', '#c2a5cf'], ['0.4', '#e7d4e8'], ['0.5', '#f7f7f7'], ['0.6', '#d9f0d3'], ['0.7', '#a6dba0'], ['0.8', '#5aae61'], ['0.9', '#1b7837'], ['1', '#00441b']],
+    sequential: [['0', '#000004'], ['0.1111111111111111', '#1b0c41'], ['0.2222222222222222', '#4a0c6b'], ['0.3333333333333333', '#781c6d'], ['0.4444444444444444', '#a52c60'], ['0.5555555555555556', '#cf4446'], ['0.6666666666666666', '#ed6925'], ['0.7777777777777778', '#fb9b06'], ['0.8888888888888888', '#f7d13d'], ['1', '#fcffa4']],
+    sequentialminus: [['0', '#0508b8'], ['0.08333333333333333', '#1910d8'], ['0.16666666666666666', '#3c19f0'], ['0.25', '#6b1cfb'], ['0.3333333333333333', '#981cfd'], ['0.4166666666666667', '#bf1cfd'], ['0.5', '#dd2bfd'], ['0.5833333333333334', '#f246fe'], ['0.6666666666666666', '#fc67fd'], ['0.75', '#fe88fc'], ['0.8333333333333334', '#fea5fd'], ['0.9166666666666666', '#febefe'], ['1', '#fec3fe']]
+  },
+  showlegend: false
+};
+
+if (annotategames) {
+  for (let x = 0; x < xValues.length; x++) {
+    for (let y = 0; y < yValues.length; y++) {
+      let currentVal = heatmapData[y][x];
+      var textColor;
+      if (currentVal < 1) {
+        textColor = 'white';
+      } else {
+        textColor = 'black';
+      }
+
+      let result = {};
+
+      if (currentVal !== null && currentVal !== undefined) {
+        let size = 20;
+        if (bypoints) {
+
+          let labelIndex = Math.floor((currentVal.toString().length - 1) / 3);
+          let ending = labels[labelIndex];
+          let num = (currentVal / (1000 ** labelIndex)).toFixed(1);
+          currentVal = `${num}${ending}`;
+          size = 10;
+        }
+        result = {
+          x: xValues[x],
+          y: y,
+          text: currentVal,
+          font: {
+            family: 'Arial',
+            size: size,
+            color: textColor
+          },
+          showarrow: false
+        };
+      }
+
+      layout.annotations.push(result);
+    }
+  }
+}
+
+let data = {
+  data: [trace1],
+  layout: layout
+};
+
+let buffer = await renderPlotlyImage(data.data, data.layout);
+
+let file = new AttachmentBuilder(buffer, { name: 'hist.png' });
+
+await interaction.editReply({
+  embeds: [generateGraphEmbed('attachment://hist.png', title, discordClient)], files: [file]
+});
+};
+
+
 /**
  * Operates on a http request and returns the url embed of the graph using quickchart.io
  * @param {Object} interaction object provided via discord
@@ -853,7 +1171,7 @@ const postQuickChart = async (interaction, tier, rankData, eventData, offset, pa
     yValues.unshift(`${daysofweek[i]} Day ${i + 1}`);
   }
 
-  if (eventData.id == 48 && tier.includes('T1')) {
+  if (eventData.id == 48 && tier.includes('T1 ')) {
     let i = 0;
 
     heatmapData.forEach(row => {
@@ -869,8 +1187,18 @@ const postQuickChart = async (interaction, tier, rankData, eventData, offset, pa
     heatmapData[7][16] = 37;
   }
 
-  if (eventData.id == 122 && tier.includes('T2')) {
+  if (eventData.id == 122 && tier.includes('T2 ')) {
     heatmapData[2][10] = 32;
+  }
+
+  if (eventData.id == 152 && tier.includes('T1 ')) {
+    heatmapData = heatmapData.map((row) => row.map((cell) => {
+      if (cell == 27 || cell == 26) {
+        return 28;
+      } else {
+        return cell;
+      }
+    }));
   }
 
   let trace1 = {
@@ -1258,6 +1586,9 @@ module.exports = {
       } else if (eventId == 28 && tier == 1) {
         postHamster(interaction, 'T1 Awakening Beat Heatmap', eventData, offset, pallete, false, bypoints, discordClient);
         return;
+      } else if (eventId == 148 && tier == 6) {
+        postIroha(interaction, 'T6 As the Leaves Change Once More Heatmap', eventData, offset, pallete, false, bypoints, discordClient);
+        return;
       }
       if (data.length == 0) {
         noDataErrorMessage(interaction, discordClient);
@@ -1307,14 +1638,7 @@ module.exports = {
 
   async autocomplete(interaction, discordClient) {
 
-    let world_blooms = discordClient.getAllWorldLinkChapters();
-
-    let options = world_blooms.map((chapter, i) => {
-      return {
-        name: chapter.character,
-        value: chapter.id,
-      };
-    });
+    let options = await getWorldBloomAutocomplete(discordClient, interaction.options.getFocused());
 
     await interaction.respond(options);
   }
