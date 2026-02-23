@@ -14,6 +14,13 @@ const V3MASTERYREWARDS = [
     [0.0, 5.0, 6.0, 7.0, 8.0, 10.0],
     [0.0, 10.0, 11.0, 12.0, 13.0, 15.0]
 ];
+const V4MASTERYREWARDS = [
+    [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
+    [0.0, 0.2, 0.4, 0.6, 0.8, 1],
+    [0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
+    [5.0, 7.0, 9.0, 11.0, 13.0, 15.0],
+    [10.0, 12.5, 15.0, 17.5, 20.0, 25.0]
+];
 const CARDRARITIES = ['rarity_1', 'rarity_2', 'rarity_3', 'rarity_birthday', 'rarity_4'];
 
 /**
@@ -223,8 +230,10 @@ const getEventBonus = (cards, eventBonusCards, eventCards, eventID) => {
 
         if (eventID >= 36 && eventID <= 51) {
             eventBonus += card.mastery * V2MASTERYREWARDS[card.rarity];
-        } else if (eventID >= 52) {
+        } else if (eventID >= 52 && eventID <= 107) {
             eventBonus += V3MASTERYREWARDS[card.rarity][card.mastery];
+        } else if (eventID >= 108) {
+            eventBonus += V4MASTERYREWARDS[card.rarity][card.mastery];
         }
 
         if (eventID >= 36 && card.group === 'piapro') {
