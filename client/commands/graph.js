@@ -12,6 +12,7 @@ const COMMAND = require('../command_data/graph');
 const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 const getEventData = require('../methods/getEventData');
+const { fuzzy, search } = require('fast-fuzzy');
 
 const colors = [
   '#FF77217F',
@@ -79,13 +80,29 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
   for (let i = 0; i < rankDatas.length; i++) {
     rankDatas[i] = rankDatas[i].filter(point => point.timestamp < events[i].aggregateAt + 60 * 15 * 1000);
   }
+
+  let interpolate = 1;
+
+  if (rankDatas.length > 2) {
+    interpolate = rankDatas.length // If we have too many graphs only get every X points to reduce size
+  }
+
   rankDatas = rankDatas.map((rankData, i) => {
+
+    let j = 0;
+
     return rankData.map(point => {
+      j++;
+
+      if (j % interpolate !== 0 && interpolate > 1) {
+        return null;
+      }
+
       return {
         x: point.timestamp - events[i].startAt,
         y: point.score
       };
-    });
+    }).filter(point => point !== null);
   });
 
   let totalEvents = rankDatas.length;
@@ -332,6 +349,8 @@ module.exports = {
       }
     });
 
+    // eventsUnique = eventsUnique.slice(0, 10); // If I graph too much the bot will literally die
+
     if (events.filter(x => x.id > 0).length === 0) {
       await interaction.editReply({
         embeds: [
@@ -404,6 +423,10 @@ module.exports = {
   },
 
   async autocomplete(interaction, discordClient) {
+
+    // TODO : Refactor to use getWorldBloomAutocomplete method
+    // Graph doesn't override to allow graphing multiple World Blooms
+    // So eventID still needs to be added
     
     let world_blooms = discordClient.getAllWorldLinkChapters();
 
@@ -414,10 +437,19 @@ module.exports = {
       };
     });
 
-    options.push({
+    options.unshift({
       name: 'All Chapters',
       value: [...new Set(options.map(x => x.value))].join(','),
     });
+
+    if (interaction.options.getFocused()) {
+      options = search(interaction.options.getFocused(), options, {
+        keySelector: (option) => option.name,
+        threshold: 0.4,
+      });
+    }
+
+    options = options.slice(0, 25);
 
     await interaction.respond(options);
   }
