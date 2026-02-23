@@ -15,8 +15,8 @@ JSONs
 prayers.json
 
 # cached images
-/gacha/cached_images
-/gacha/cached_full_images
+/gacha/cached_images/*
+/gacha/cached_full_images/*
 test.png
 default_error_image.png
 
