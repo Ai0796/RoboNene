@@ -75,10 +75,16 @@ async function sendData(data, tier, eventId, eventData, discordClient, interacti
         let pointTable = generateEnergyTable(data.basePoints);
 
         const energyCounts = new Array(energyBoost.length).fill(0);
+        const mySekaiEnergyUsed = 0;
         let energyUsed = 0;
 
         data.ppg.forEach((point) => {
             if (point >= 100) {
+                if (point < 1000 && point % 500 == 0) {
+                    // Probably MySekai
+                    mySekaiEnergyUsed += 1;
+                    return;
+                }
                 let tempEnergyTable = [];
                 energyBoost.forEach((x, i) => {
                     if (point % x == 0) {
@@ -116,6 +122,8 @@ async function sendData(data, tier, eventId, eventData, discordClient, interacti
         for (let i = 0; i < energyBoost.length; i++) {
             embedStr += `\`${i}x ${' '.repeat(energyLength - `${i}x`.length)} ${' '.repeat(gamesLength - `${energyCounts[i]}`.length)}${energyCounts[i]}\`\n`;
         }
+
+        embedStr += `\`MySekai${' '.repeat(energyLength - 'MySekai'.length)} ${' '.repeat(gamesLength - `${mySekaiEnergyUsed}`.length)}${mySekaiEnergyUsed}\`\n`;
 
         //Ignore this entire section
         embed.addFields(
