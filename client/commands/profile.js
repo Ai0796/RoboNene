@@ -55,7 +55,7 @@ async function getImage(assetBundleName, rarityType) {
   
     } else {
   
-      let normalImage = `https://storage.sekai.best/sekai-jp-assets/character/member_cutout/${assetBundleName}/card_normal.webp`;
+      let normalImage = `https://storage.sekai.best/sekai-jp-assets/character/member/${assetBundleName}/card_normal.webp`;
       await downloadImage(normalImage, `${folderLocation}/${assetBundleName}_normal.webp`);
       images.normal = sharp(`${folderLocation}/${assetBundleName}_normal.webp`);
     }
@@ -72,7 +72,7 @@ async function getImage(assetBundleName, rarityType) {
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       } else {
   
-        let trainedImage = `https://storage.sekai.best/sekai-jp-assets/character/member_cutout/${assetBundleName}/card_after_training.webp`;
+        let trainedImage = `https://storage.sekai.best/sekai-jp-assets/character/member/${assetBundleName}/card_after_training.webp`;
         await downloadImage(trainedImage, `${folderLocation}/${assetBundleName}_after_training.webp`);
         images.trained = sharp(`${folderLocation}/${assetBundleName}_after_training.webp`);
       }
@@ -260,6 +260,7 @@ const generateProfileEmbed = async (discordClient, userId, data, private) => {
     const cardInfo = binarySearch(id, 'id', cards);
     const card = data.userCards.filter((c) => c.cardId === id)[0];
     const charInfo = gameCharacters[cardInfo.characterId-1];
+    const totalTalent = data.totalPower.totalPower;
     teamText += `${cardRarities[cardInfo.cardRarityType]}`;
     teamText += ' ';
     teamText += `__${cardInfo.prefix} ${charInfo.givenName} ${charInfo.firstName}__\n`;
@@ -270,7 +271,7 @@ const generateProfileEmbed = async (discordClient, userId, data, private) => {
     teamText += `Character Deco: \`${cardData.characterDecoTalent.toFixed(0).toLocaleString()}\`\n`;
     teamText += `Area Deco: \`${cardData.areaDecoTalent.toFixed(0).toLocaleString()}\`\n`;
     teamText += `Character Rank: \`${cardData.CRTalent.toFixed(0).toLocaleString()}\`\n`;
-    teamText += `Total: \`${cardData.talent.toFixed(0).toLocaleString()}\`\n`;
+    teamText += `Total: \`${totalTalent.toFixed(0).toLocaleString()}\`\n`;
     teamText += '\n';
 
     let image = await getImage(cardInfo.assetbundleName, cardInfo.cardRarityType);
