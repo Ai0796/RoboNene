@@ -20,8 +20,8 @@ const { parse } = require('csv-parse');
 const weightedLinearRegression = require('../methods/weightedLinearRegression');
 const bisectLeft = require('../methods/bisect');
 
-const fp = './JSONs/weights.json';
-const weights = JSON.parse(fs.readFileSync(fp, 'utf-8'));
+const weightsNormal = JSON.parse(fs.readFileSync('./JSONs/weights.json', 'utf-8'));
+const weightsWL = JSON.parse(fs.readFileSync('./JSONs/weights_WL.json', 'utf-8'));
 
 /**
  * Operates on a http request and returns the current rate being hosted on GH actions.
@@ -320,6 +320,7 @@ const generateCutoff = async ({ interaction, event,
   const eventPercentage = Math.min((timestamp - event.startAt) * 100 / duration, 100);
 
   //weight consists of 3 lists, percentage, std_dev, and mean
+  const weights = (event.eventType === 'world_bloom') ? weightsWL : weightsNormal;
   const weight = weights[tier.toString()];
   let percentage = weight[0];
   let std_dev = weight[1];
@@ -487,7 +488,7 @@ module.exports = {
               name: COMMAND.INFO.name,
               content: {
                 type: 'Error',
-                message: 'Chapter cutoffs don\'t exist have T1500 or T2500. '
+                message: 'Chapter cutoffs don\'t exist for T1500 or T2500. '
               },
               client: discordClient.client
             })]
