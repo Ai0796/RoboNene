@@ -404,7 +404,8 @@ module.exports = {
       });
     };
 
-    if (discordClient.cutoffCache !== null) {
+    let now = Date.now();
+    if (discordClient.cutoffCache !== null && now - discordClient.cutoffCache.timestamp < COMMAND.CONSTANTS.CUTOFF_CACHE_TIME) {
       console.log('Using cached data');
       let { response, timestamp } = discordClient.cutoffCache;
       sendLeaderboardEmbed(response, timestamp);
@@ -414,7 +415,7 @@ module.exports = {
     discordClient.addSekaiRequest('ranking', {
       eventId: event.id,
     }, async (response) => {
-      sendLeaderboardEmbed(response, Date.now());
+      sendLeaderboardEmbed(response, now);
     }, async (err) => {
       // Log the error
       discordClient.logger.log({

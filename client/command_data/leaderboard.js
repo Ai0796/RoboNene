@@ -54,6 +54,8 @@ module.exports = {
     },
 
     'INTERACTION_TIME': 60000,
+
+    'CUTOFF_CACHE_TIME': 5000, // Cache data for 5 seconds to prevent overloading
   
     'LEFT': '⬅️',
     'RIGHT': '➡️',
