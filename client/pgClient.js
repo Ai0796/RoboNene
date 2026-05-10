@@ -58,16 +58,17 @@ class pgClient {
 
     // Helper to manage the cache size
     async _getInternalID(sekaiID, dbClient=null) {
-        let spawned = false;
-        if (!dbClient) {
-            dbClient = await this.client.connect();
-            spawned = true;
-        }
         const dID = String(sekaiID);
 
         // 1. Check RAM Cache first
         if (this.idCache.has(dID)) {
             return this.idCache.get(dID);
+        }
+
+        let spawned = false;
+        if (!dbClient) {
+            dbClient = await this.client.connect();
+            spawned = true;
         }
 
         // 2. Not in RAM, hit the DB (Upsert logic)
@@ -133,6 +134,7 @@ class pgClient {
         console.log('Executing query:', queryText, 'with params:', limit !== null ? [tier, eventID, limit] : [tier, eventID]);
         
         const res = await this.client.query(queryText, limit !== null ? [tier, eventID, limit] : [tier, eventID]);
+
         return res.rows;
     }
 
