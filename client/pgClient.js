@@ -94,6 +94,12 @@ class pgClient {
         const res = await this.client.query(queryText, limit !== null ? [eventID, userID, limit] : [eventID, userID]);
         return res.rows;
     }
+
+    async selectUser(eventID, userID, limit=null) {
+        const queryText = 'SELECT * FROM users WHERE EventID = $1 AND ID = $2' + (limit !== null ? ' LIMIT $3' : '');
+        const res = await this.client.query(queryText, limit !== null ? [eventID, userID, limit] : [eventID, userID]);
+        return res.rows;
+    }
 }
 
 module.exports = {

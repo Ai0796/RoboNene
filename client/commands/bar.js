@@ -405,7 +405,7 @@ module.exports = {
           return;
         }
 
-        let data = await discordClient.pgClient.selectUserID(eventData.id, id);
+        let data = await discordClient.pgClient.selectUser(eventData.id, id);
 
         if (data.length > 0)
         {

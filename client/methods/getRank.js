@@ -87,7 +87,7 @@ const getRank = async (commandName, interaction, discordClient, requestParams) =
       return;
     }
 
-    let data = await discordClient.pgClient.selectUserID(event.id, id);
+    let data = await discordClient.pgClient.selectUser(event.id, id);
     if (data.length > 0)
     {
       let finalScore = data[data.length-1].Score;

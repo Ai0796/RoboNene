@@ -86,7 +86,7 @@ const generateGraphEmbed = (graphUrl, tier, discordClient) => {
 };
 
 async function getUserData(userId, event, discordClient) {
-  let data = await discordClient.pgClient.selectUserID(event.id, userId);
+  let data = await discordClient.pgClient.selectUser(event.id, userId);
   data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
   data.unshift({ timestamp: event.startAt, score: 0 });
   return data;
