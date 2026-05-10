@@ -6,8 +6,6 @@
 
 const { EmbedBuilder, PermissionsBitField } = require('discord.js');
 const { NENE_COLOR } = require('../constants');
-const RANKING_RANGE = require('./trackRankingRange.json');
-const RANKING_RANGE_V2 = require('./trackRankingRangeV2.json');
 const fs = require('fs');
 const generateRankingText = require('../client/methods/generateRankingTextChanges');
 
@@ -254,7 +252,7 @@ const requestRanking = async (event, discordClient) => {
       try {
         await discordClient.pgClient.insertTiers(inserts);
       } catch (err) {
-        console.error("Failed to bulk insert rankings:", err);
+        console.error('Failed to bulk insert rankings:', err);
       }
     }
 
@@ -263,11 +261,9 @@ const requestRanking = async (event, discordClient) => {
   };
 
   // ... (Keep your priority request code here) ...
-  for(const idx in RANKING_RANGE) {
-    discordClient.addPrioritySekaiRequest('ranking', { eventId: event.id }, retrieveResult, (err) => {
-      discordClient.logger.log({ level: 'error', message: err.toString() });
-    });
-  }
+  discordClient.addPrioritySekaiRequest('ranking', { eventId: event.id }, retrieveResult, (err) => {
+    discordClient.logger.log({ level: 'error', message: err.toString() });
+  });
 };
 
 /**
@@ -320,7 +316,7 @@ const requestBorder = async (event, discordClient) => {
       try {
         await discordClient.pgClient.insertTiers(inserts);
       } catch (err) {
-        console.error("Failed to bulk insert borders:", err);
+        console.error('Failed to bulk insert borders:', err);
       }
     }
   };
