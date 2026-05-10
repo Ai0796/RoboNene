@@ -163,7 +163,7 @@ async function onInteract(interaction, discordClient, data, channel_id) {
             }
             if (data.users.length > 0) {
                 const nextUser = data.users[0];
-                confirmJoin(interaction, nextUser, discordClient);
+                await confirmJoin(interaction, nextUser, discordClient);
                 return;
             } else {
                 await interaction.reply({ content: 'No users in queue', ephemeral: true });
