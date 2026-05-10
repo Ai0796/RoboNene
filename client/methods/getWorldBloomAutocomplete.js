@@ -28,7 +28,6 @@ getWorldBloomAutocomplete = async (discordClient, inputText) => {
 
     if (inputText) {
         options = search(inputText, options, {
-            keySelector: (option) => option.name,
             threshold: 0.4,
         });
     }
