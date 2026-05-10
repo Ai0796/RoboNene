@@ -28,7 +28,8 @@ const GAME_CONSTANTS = {
     'virtualLives',
     'worldBlooms',
     'gachas',
-    'musicVocals'
+    'musicVocals',
+    'unitProfiles'
   ]
 };
 

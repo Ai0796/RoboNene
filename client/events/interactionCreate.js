@@ -122,7 +122,8 @@ module.exports = {
       try {
         await command.execute(interaction, discordClient);
       } catch (error) {
-        console.error(error);
+        console.log(`Error executing command ${command.data.name}: ${error}`);
+        // console.error(error);
       }
     }
   }
