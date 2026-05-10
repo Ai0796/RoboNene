@@ -337,7 +337,7 @@ const generateCutoff = async ({ interaction, event, timestamp, tier, score, rank
   const gpResult = await getGPEstimate(rankData, tier, duration, event.startAt, event.eventType === 'world_bloom');
   const gpEstimateStr = gpResult.estimate !== 'Error' ? Math.round(gpResult.estimate).toLocaleString() : 'N/A';
   const gpErrorStr = gpResult.error !== 'N/A' ? Math.round(gpResult.error).toLocaleString() : 'N/A';
-  const gpWarning = eventPercentage < 40 ? ' *(Confidence: Low - Still in Burn-In Phase)*' : '';
+  const gpWarning = eventPercentage < 40 ? ' *(Low Confidence)*' : '';
 
   // Generate the cutoff embed
   const lastHourPtTimeMs = new Date(lastHourPt.timestamp).getTime();
@@ -368,7 +368,7 @@ const generateCutoff = async ({ interaction, event, timestamp, tier, score, rank
       `Estimated Points (Normal Dist): \`\`${NormalEstimate.toLocaleString()}\`\`\n` +
       ((detailed) ? `*${COMMAND.CONSTANTS.NORM_PRED_DESC}*${regEquationStr}\n\n` : '') +
       `Estimated Points (Gaussian Process): \`\`${gpEstimateStr} ± ${gpErrorStr}\`\`${gpWarning}\n` +
-      ((detailed) ? `*Gaussian Process Residual Modeling.*\n` : '')
+      ((detailed) ? '*Gaussian Process Residual Modeling.*\n' : '')
   });
 
   // Add a Naive Estimate if the user requests detailed information

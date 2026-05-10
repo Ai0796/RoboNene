@@ -75,7 +75,7 @@ async function sendData(data, tier, eventId, eventData, discordClient, interacti
         let pointTable = generateEnergyTable(data.basePoints);
 
         const energyCounts = new Array(energyBoost.length).fill(0);
-        const mySekaiEnergyUsed = 0;
+        let mySekaiEnergyUsed = 0;
         let energyUsed = 0;
 
         data.ppg.forEach((point) => {

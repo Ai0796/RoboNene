@@ -112,7 +112,7 @@ const getRankingEvent = () => {
  * @param {DiscordClient} discordClient the client we are using 
  */
 const trackCutoffData = async (discordClient) => {
-    let dataUpdater = setInterval(getCutoffs, CUTOFF_INTERVAL, discordClient);
+    setInterval(getCutoffs, CUTOFF_INTERVAL, discordClient);
     getCutoffs(discordClient); //Run function once since setInterval waits an interval to run it
 };
 

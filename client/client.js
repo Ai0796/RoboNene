@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { Event } = require('./classes/Events');
 const { SekaiEventProcessor } = require('./classes/SekaiEventsObject');
-const { connect, pgClient } = require('./pgClient');
+const { pgClient } = require('./pgClient');
 
 // Constants used to locate the directories of data
 const CLIENT_CONSTANTS = {
