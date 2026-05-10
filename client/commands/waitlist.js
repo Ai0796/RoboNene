@@ -142,32 +142,36 @@ async function waitlistEmbed(data, client) {
 }
 
 async function onInteract(interaction, discordClient, data, channel_id) {
-    const { customId } = interaction;
-    const user = interaction.user.id.toString();
+    try {
+        const { customId } = interaction;
+        const user = interaction.user.id.toString();
 
-    if (customId === 'join') {
-        if (!data.users.includes(user)) {
-            data.users.push(user);
-        }
-        await interaction.update(await waitlistEmbed(data, discordClient.client));
+        if (customId === 'join') {
+            if (!data.users.includes(user)) {
+                data.users.push(user);
+            }
+            await interaction.update(await waitlistEmbed(data, discordClient.client));
 
-        await interaction.followUp({ content: `<@${user}> has joined the the waitlist`, allowedMentions: {parse: []} });
-    } else if (customId === 'leave') {
-        data.users = data.users.filter(u => u !== user);
-        await interaction.update(await waitlistEmbed(data, discordClient.client));
-    } else if (customId === 'ping') {
-        if (checkRateLimit(channel_id)) {
-            await interaction.reply({ content: 'Rate limited, please wait a few seconds before trying again', ephemeral: true });
-            return;
+            await interaction.followUp({ content: `<@${user}> has joined the the waitlist`, allowedMentions: { parse: [] } });
+        } else if (customId === 'leave') {
+            data.users = data.users.filter(u => u !== user);
+            await interaction.update(await waitlistEmbed(data, discordClient.client));
+        } else if (customId === 'ping') {
+            if (checkRateLimit(channel_id)) {
+                await interaction.reply({ content: 'Rate limited, please wait a few seconds before trying again', ephemeral: true });
+                return;
+            }
+            if (data.users.length > 0) {
+                const nextUser = data.users[0];
+                confirmJoin(interaction, nextUser, discordClient);
+                return;
+            } else {
+                await interaction.reply({ content: 'No users in queue', ephemeral: true });
+                return;
+            }
         }
-        if (data.users.length > 0) {
-            const nextUser = data.users[0];
-            confirmJoin(interaction, nextUser, discordClient);
-            return;
-        } else {
-            await interaction.reply({ content: 'No users in queue', ephemeral: true });
-            return;
-        }
+    } catch (e) {
+        console.error(e);
     }
 }
 
@@ -193,14 +197,21 @@ async function confirmJoin(interaction, nextUser, discordClient) {
     });
 
     collector.on('collect', async (i) => {
-        if (i.customId === 'confirmJoin' && i.user.id === nextUser) {
-            i.reply({ content: 'You have been removed from other waitlists', ephemeral: true });
-            channel.send(`<@${nextUser}> has been added to the room`);
-            removeUser(DATA, nextUser);
-            saveData(DATA);
-            checkedIn = true;
-            await channel.messages.fetch(message_id).then(message => message.delete());
-            collector.stop();
+
+        if (i.replied || i.deferred) return;
+
+        try {
+            if (i.customId === 'confirmJoin' && i.user.id === nextUser) {
+                await i.reply({ content: 'You have been removed from other waitlists', ephemeral: true });
+                channel.send(`<@${nextUser}> has been added to the room`);
+                removeUser(DATA, nextUser);
+                saveData(DATA);
+                checkedIn = true;
+                await channel.messages.fetch(message_id).then(message => message.delete());
+                collector.stop();
+            }
+        } catch (e) {
+            console.error(e);
         }
     });
     collector.on('end', async () => {
