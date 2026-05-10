@@ -299,23 +299,15 @@ async function noDataErrorMessage(interaction, discordClient) {
 }
 
 async function sendHistoricalTierRequest(eventData, tier, interaction, hour, discordClient) {
-  
-  let response = discordClient.cutoffdb.prepare('SELECT ID, score FROM cutoffs ' +
-    'WHERE (Tier=@tier AND EventID=@eventID) ORDER BY SCORE DESC').all({
-      tier: tier,
-      eventID: eventData.id
-    });
+
+  let response = await discordClient.pgClient.selectTierDESC(tier, eventData.id);
 
   if (response.length == 0) {
     noDataErrorMessage(interaction, discordClient);
   } else {
     let userId = response[0]['ID']; //Get the last ID in the list
 
-    let data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-      'WHERE (ID=@id AND EventID=@eventID)').all({
-        id: userId,
-        eventID: eventData.id
-      });
+    let data = await discordClient.pgClient.selectUserID(eventData.id, userId);
     if (data.length > 0) {
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
       let title = `${eventData.name} T${tier} Heatmap`;
@@ -340,11 +332,7 @@ async function sendTierRequest(eventData, tier, interaction, hour, discordClient
 
     let userId = response['rankings'][tier-1]['userId']; //Get the specific tier's userID
     
-    let data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-      'WHERE (ID=@id AND EventID=@eventID)').all({
-        id: userId,
-        eventID: eventData.id
-      });
+    let data = await discordClient.pgClient.selectUserID(eventData.id, userId);
     if(data.length > 0) {
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
       let title = `${eventData.name} T${tier} ${response['rankings'][tier-1]['name']}boo Heatmap`;
@@ -397,11 +385,7 @@ module.exports = {
 
     if(tier)
     {
-      var data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-        'WHERE (Tier=@tier AND EventID=@eventID)').all({
-          tier: tier,
-          eventID: eventId
-        });
+      let data = await discordClient.pgClient.selectTier(tier, eventData.id);
       if (data.length == 0) {
         noDataErrorMessage(interaction, discordClient);
         return;
@@ -421,11 +405,7 @@ module.exports = {
           return;
         }
 
-        let data = discordClient.cutoffdb.prepare('SELECT * FROM users ' +
-          'WHERE (id=@id AND EventID=@eventID)').all({
-            id: id,
-            eventID: eventId
-          });
+        let data = await discordClient.pgClient.selectUserID(eventData.id, id);
 
         if (data.length > 0)
         {

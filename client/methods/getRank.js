@@ -87,11 +87,7 @@ const getRank = async (commandName, interaction, discordClient, requestParams) =
       return;
     }
 
-    let data = discordClient.cutoffdb.prepare('SELECT * FROM users ' +
-      'WHERE (id=@id AND EventID=@eventID)').all({
-        id: id,
-        eventID: event.id
-      });
+    let data = await discordClient.pgClient.selectUserID(event.id, id);
     if (data.length > 0)
     {
       let finalScore = data[data.length-1].Score;

@@ -79,12 +79,9 @@ async function userStatistics(user, eventId, eventData, discordClient, interacti
         return;
     }
 
-    let data = discordClient.cutoffdb.prepare('SELECT * FROM users ' +
-        'WHERE (id=@id AND EventID=@eventID)').all({
-            id: id,
-            eventID: eventId
-        });
-    if (data.length) {
+    let data = await discordClient.pgClient.selectUserID(eventId, id);
+
+    if (data.length > 0) {
 
         let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
         let title = `${user.displayName} Statistics`;
@@ -210,11 +207,7 @@ async function tierStatistics(tier, eventId, eventData, discordClient, interacti
         targetRank: tier,
         lowerLimit: 0
     }, async (response) => {
-        let data = discordClient.cutoffdb.prepare('SELECT Timestamp, Score FROM cutoffs ' +
-            'WHERE (EventID=@eventID AND ID=@id)').all({
-                id: response['rankings'][tier-1]['userId'],
-                eventID: eventId
-            });
+        let data = await discordClient.pgClient.selectUserID(eventId, response['rankings'][tier - 1]['userId']);
 
         if (data.length == 0) {
             let reply = 'Please input a tier in the range 1-100';
@@ -262,18 +255,11 @@ async function tierStatistics(tier, eventId, eventData, discordClient, interacti
 
 async function tierHistoricalStatistics(tier, eventId, eventData, discordClient, interaction) {
     
-    let response = discordClient.cutoffdb.prepare('SELECT ID, Score FROM cutoffs ' +
-        'WHERE (EventID=@eventID AND Tier=@tier) ORDER BY TIMESTAMP DESC').all({
-            eventID: eventData.id,
-            tier: tier
-        });
+    let response = await discordClient.pgClient.selectTierDESC(tier, eventData.id);
 
     if (response.length > 0) {
-        let data = discordClient.cutoffdb.prepare('SELECT Timestamp, Score FROM cutoffs ' +
-            'WHERE (EventID=@eventID AND ID=@id)').all({
-                id: response[0].ID,
-                eventID: eventId
-            });
+
+        let data = await discordClient.pgClient.selectUserID(eventId, response[0].ID);
 
         if (data.length == 0) {
             let reply = 'Please input a tier in the range 1-100 or input 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, or 50000';

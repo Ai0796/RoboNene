@@ -6,8 +6,6 @@
 
 const { EmbedBuilder, PermissionsBitField } = require('discord.js');
 const { NENE_COLOR } = require('../constants');
-const RANKING_RANGE = require('./trackRankingRange.json');
-const RANKING_RANGE_V2 = require('./trackRankingRangeV2.json');
 const fs = require('fs');
 const generateRankingText = require('../client/methods/generateRankingTextChanges');
 
@@ -32,12 +30,8 @@ function getLastHour(sortedList, el) {
  * @param {DiscordClient} discordClient the client we are using to interact with Discord
  */
 const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) => {
-  const generateTrackingEmbed = () => {
-      let data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-          'WHERE (EventID=@eventID AND Tier=@tier)').all({
-            eventID: event.id,
-            tier: 1
-          });
+  const generateTrackingEmbed = async () => {
+      let data = await discordClient.pgClient.selectTier(1, event.id);
 
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
       let timestamps = rankData.map(x => x.timestamp);
@@ -54,11 +48,7 @@ const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) =
         userIds.push(rankingData[i].userId);
       }
 
-      let lastHourData = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-        'WHERE (EventID=@eventID AND Timestamp=@timestamp)').all({
-          eventID: event.id,
-          timestamp: timestampIndex,
-        });
+      let lastHourData = discordClient.pgClient.selectTimestamp(timestampIndex, event.id);
 
       lastHourData.forEach(data => {
         let index = userIds.indexOf(data.ID);
@@ -113,7 +103,7 @@ const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) =
   };
 
   if (rankingData.length > 0) {
-    const trackingEmbed = generateTrackingEmbed();
+    const trackingEmbed = await generateTrackingEmbed();
 
     const channels = await removeDuplicates(discordClient.db.prepare('SELECT * FROM tracking').all());
 
@@ -188,11 +178,6 @@ async function deleteGames() {
  */
 const requestRanking = async (event, discordClient) => {
 
-  const insertCutoff = discordClient.cutoffdb.prepare(`
-    INSERT INTO cutoffs (EventID, Tier, Timestamp, Score, ID, GameNum) 
-    VALUES (@eventID, @tier, @timestamp, @score, @id, @gameNum)
-  `);
-
   const retrieveResult = async (response) => {
     if (!response || !response.rankings) return;
 
@@ -200,79 +185,85 @@ const requestRanking = async (event, discordClient) => {
     const timestamp = Date.now();
     let gameCache = await getGames();
 
-    // 1. Define the transaction (This compiles all the math into one fast block)
-    const updateRankingsTransaction = discordClient.cutoffdb.transaction((data, cache) => {
+    // Array to hold all our rows for the bulk insert
+    const inserts = [];
 
-      // Handle Main Rankings
-      data.forEach((ranking) => {
-        if (ranking != null && event.id != -1) {
+    // Handle Main Rankings
+    rankingData.forEach((ranking) => {
+      if (ranking != null && event.id != -1) {
+        let score = ranking['score'];
+        let rank = ranking['rank'];
+        let id = ranking['userId'];
+
+        if (id in gameCache) {
+          if (score >= gameCache[id].score + 100) {
+            gameCache[id].games++;
+            gameCache[id].score = score;
+          }
+        } else {
+          gameCache[id] = { 'score': score, 'games': 1 };
+        }
+
+        // Push an ARRAY of values matching the column order in insertTiers
+        // (EventID, Tier, Timestamp, Score, ID, GameNum)
+        inserts.push([
+          event.id,
+          rank,
+          timestamp,
+          score,
+          id,
+          gameCache[id].games
+        ]);
+      }
+    });
+
+    // Handle World Bloom Chapter Rankings
+    if (response.userWorldBloomChapterRankings !== undefined) {
+      response.userWorldBloomChapterRankings.forEach((chapter) => {
+        let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
+        chapter.rankings.forEach((ranking) => {
           let score = ranking['score'];
           let rank = ranking['rank'];
           let id = ranking['userId'];
 
-          if (id in cache) {
-            if (score >= cache[id].score + 100) {
-              cache[id].games++;
-              cache[id].score = score;
+          if (id in gameCache) {
+            if (score >= gameCache[id].score + 100) {
+              gameCache[id].games++;
+              gameCache[id].score = score;
             }
           } else {
-            cache[id] = { 'score': score, 'games': 1 };
+            gameCache[id] = { 'score': score, 'games': 1 };
           }
 
-          // Use the pre-compiled statement here!
-          insertCutoff.run({
-            score: score,
-            eventID: event.id,
-            tier: rank,
-            timestamp: timestamp,
-            id: id,
-            gameNum: cache[id].games
-          });
-        }
-      });
-
-      // Handle World Bloom Chapter Rankings
-      if (response.userWorldBloomChapterRankings !== undefined) {
-        response.userWorldBloomChapterRankings.forEach((chapter) => {
-          let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
-          chapter.rankings.forEach((ranking) => {
-            let score = ranking['score'];
-            let rank = ranking['rank'];
-            let id = ranking['userId'];
-
-            if (id in cache) {
-              if (score >= cache[id].score + 100) {
-                cache[id].games++;
-                cache[id].score = score;
-              }
-            } else {
-              cache[id] = { 'score': score, 'games': 1 };
-            }
-
-            insertCutoff.run({
-              score: score,
-              eventID: chapterId,
-              tier: rank,
-              timestamp: timestamp,
-              id: id,
-              gameNum: cache[id].games
-            });
-          });
+          inserts.push([
+            chapterId,
+            rank,
+            timestamp,
+            score,
+            id,
+            gameCache[id].games
+          ]);
         });
-      }
-    });
-
-    // 2. Execute the transaction safely
-    try {
-      updateRankingsTransaction(rankingData, gameCache);
-    } catch (dbError) {
-      console.error("Database Transaction Error in requestRanking:", dbError);
+      });
     }
 
-    // 3. Continue with your normal flow
+    // Insert everything into Postgres at once!
+    if (inserts.length > 0) {
+      try {
+        await discordClient.pgClient.insertTiers(inserts);
+      } catch (err) {
+        console.error('Failed to bulk insert rankings:', err);
+      }
+    }
+
     await writeGames(gameCache);
     sendTrackingEmbed(response.rankings, event, timestamp, discordClient);
   };
+
+  // ... (Keep your priority request code here) ...
+  discordClient.addPrioritySekaiRequest('ranking', { eventId: event.id }, retrieveResult, (err) => {
+    discordClient.logger.log({ level: 'error', message: err.toString() });
+  });
 };
 
 /**
@@ -281,58 +272,52 @@ const requestRanking = async (event, discordClient) => {
  * @param {DiscordClient} discordClient the client we are using 
  */
 const requestBorder = async (event, discordClient) => {
-  // 1. Prepare the statement exactly ONCE outside the loop
-  const insertCutoff = discordClient.cutoffdb.prepare(`
-    INSERT INTO cutoffs (EventID, Tier, Timestamp, Score, ID, GameNum) 
-    VALUES (@eventID, @tier, @timestamp, @score, @id, @gameNum)
-  `);
 
   const saveBorderData = async (response) => {
     if (!response || !response.borderRankings) return;
 
     const rankingData = response.borderRankings;
     const timestamp = Date.now();
+    const inserts = [];
 
-    // 2. Wrap everything in a transaction
-    const updateBordersTransaction = discordClient.cutoffdb.transaction((data) => {
-
-      // Handle Main Border Rankings
-      data.forEach((ranking) => {
-        if (ranking != null && event.id != -1) {
-          insertCutoff.run({
-            score: ranking['score'],
-            eventID: event.id,
-            tier: ranking['rank'],
-            timestamp: timestamp,
-            id: ranking['userId'],
-            gameNum: 1
-          });
-        }
-      });
-
-      // Handle World Bloom Border Rankings
-      if (response.userWorldBloomChapterRankingBorders !== undefined) {
-        response.userWorldBloomChapterRankingBorders.forEach((chapter) => {
-          let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
-          chapter.borderRankings.forEach((ranking) => {
-            insertCutoff.run({
-              score: ranking['score'],
-              eventID: chapterId,
-              tier: ranking['rank'],
-              timestamp: timestamp,
-              id: ranking['userId'],
-              gameNum: 1
-            });
-          });
-        });
+    // Handle Main Border Rankings
+    rankingData.forEach((ranking) => {
+      if (ranking != null && event.id != -1) {
+        inserts.push([
+          event.id,
+          ranking['rank'],
+          timestamp,
+          ranking['score'],
+          ranking['userId'],
+          1 // GameNum is 1 for borders
+        ]);
       }
     });
 
-    // 3. Execute the transaction
-    try {
-      updateBordersTransaction(rankingData);
-    } catch (dbError) {
-      console.error("Database Transaction Error in requestBorder:", dbError);
+    // Handle World Bloom Border Rankings
+    if (response.userWorldBloomChapterRankingBorders !== undefined) {
+      response.userWorldBloomChapterRankingBorders.forEach((chapter) => {
+        let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
+        chapter.borderRankings.forEach((ranking) => {
+          inserts.push([
+            chapterId,
+            ranking['rank'],
+            timestamp,
+            ranking['score'],
+            ranking['userId'],
+            1
+          ]);
+        });
+      });
+    }
+
+    // Execute the bulk insert
+    if (inserts.length > 0) {
+      try {
+        await discordClient.pgClient.insertTiers(inserts);
+      } catch (err) {
+        console.error('Failed to bulk insert borders:', err);
+      }
     }
   };
 
@@ -340,10 +325,7 @@ const requestBorder = async (event, discordClient) => {
   discordClient.addPrioritySekaiRequest('border', {
     eventId: event.id
   }, saveBorderData, (err) => {
-    discordClient.logger.log({
-      level: 'error',
-      message: err.toString()
-    });
+    discordClient.logger.log({ level: 'error', message: err.toString() });
   });
 };
 

@@ -45,15 +45,7 @@ async function getCutoffs(discordClient) {
                 let timestamp = Date.now();
                 let id = response['rankings'][0]['userId'];
 
-                discordClient.cutoffdb.prepare('INSERT INTO cutoffs ' +
-                    '(EventID, Tier, Timestamp, Score, ID) ' +
-                    'VALUES(@eventID, @tier, @timestamp, @score, @id)').run({
-                        score: score,
-                        eventID: event,
-                        tier: rank,
-                        timestamp: timestamp,
-                        id: id
-                    });
+                await discordClient.pgClient.insertTiers([[event, rank, timestamp, score, id, 0]]);
             }
         } catch (e) {
             console.log('Error occured while adding cutoffs: ', e);
@@ -120,7 +112,7 @@ const getRankingEvent = () => {
  * @param {DiscordClient} discordClient the client we are using 
  */
 const trackCutoffData = async (discordClient) => {
-    let dataUpdater = setInterval(getCutoffs, CUTOFF_INTERVAL, discordClient);
+    setInterval(getCutoffs, CUTOFF_INTERVAL, discordClient);
     getCutoffs(discordClient); //Run function once since setInterval waits an interval to run it
 };
 

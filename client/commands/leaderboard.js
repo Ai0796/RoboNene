@@ -28,12 +28,8 @@ function getLastHour(sortedList, el) {
 
 const HOUR = 3600000;
 
-function getLastHourData(response, rankingData, event, discordClient) {
-  let data = discordClient.cutoffdb.prepare('SELECT Timestamp, Score FROM cutoffs ' +
-    'WHERE (EventID=@eventID AND ID=@id)').all({
-      id: response['rankings'][0]['userId'],
-      eventID: event.id
-    });
+async function getLastHourData(response, rankingData, event, discordClient) {
+  let data = await discordClient.pgClient.selectUserID(event.id, response['rankings'][0]['userId']);
 
   let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
   let timestamps = rankData.map(x => x.timestamp);
@@ -57,17 +53,9 @@ function getLastHourData(response, rankingData, event, discordClient) {
     userIds.push(rankingData[i].userId);
   }
 
-  let currentData = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-    'WHERE (EventID=@eventID AND Timestamp=@timestamp)').all({
-      eventID: event.id,
-      timestamp: lastTimestamp,
-    });
+  let currentData = await discordClient.pgClient.selectTimestamp(lastTimestamp, event.id);
 
-  let lastHourData = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-    'WHERE (EventID=@eventID AND Timestamp=@timestamp)').all({
-      eventID: event.id,
-      timestamp: timestampIndex,
-    });
+  let lastHourData = await discordClient.pgClient.selectTimestamp(timestampIndex, event.id);
 
   lastHourData.sort((a, b) => a.Tier - b.Tier);
   let currentGamesPlayed = {};
@@ -210,7 +198,7 @@ module.exports = {
       let start = page * RESULTS_PER_PAGE;
       let end = start + RESULTS_PER_PAGE;
 
-      let overallData = getLastHourData(response, rankingData, event, discordClient);
+      let overallData = await getLastHourData(response, rankingData, event, discordClient);
       var chapterData, chapterRankingData;
 
       let [lastHourCutoffs, tierChange, GPH, gamesPlayed, timestampIndex] = overallData;
@@ -220,7 +208,7 @@ module.exports = {
         console.log(worldLink.chapterNo);
         worldLink.id = parseInt(`${worldLink.eventId}${worldLink.gameCharacterId}`);
         let data = response.userWorldBloomChapterRankings[worldLink.chapterNo - 1];
-        chapterData = getLastHourData(data, data.rankings, worldLink, discordClient);
+        chapterData = await getLastHourData(data, data.rankings, worldLink, discordClient);
         chapterRankingData = response.userWorldBloomChapterRankings[worldLink.chapterNo - 1].rankings;
         [lastHourCutoffs, tierChange, GPH, gamesPlayed, timestampIndex] = chapterData;
         rankingData = chapterRankingData;

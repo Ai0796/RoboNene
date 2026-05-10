@@ -9,6 +9,7 @@
     "unload": "node ./client/unload.js",
     "unloadGuild": "node ./client/unloadGuild.js",
     "test": "",
+    "testpg": "node ./scripts/testpg.js",
     "lint": "eslint . --fix"
   },
   "dependencies": {
@@ -30,6 +31,8 @@
     "node-fetch": "^3.3.0",
     "papaparse": "^5.4.1",
     "patternomaly": "^1.3.2",
+    "pg": "^8.20.0",
+    "pg-format": "^1.0.4",
     "plotly": "^1.0.6",
     "plotly.js-dist-min": "^2.14.0",
     "puppeteer": "^21.11.0",
