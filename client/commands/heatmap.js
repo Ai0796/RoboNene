@@ -1130,7 +1130,8 @@ const postQuickChart = async (interaction, tier, rankData, eventData, offset, pa
       if (gain < 150000 && gain >= 100) {
         if (bypoints) {
           gamesPerHour += gain;
-        } else {
+        // Remove MySekai EP
+        } else if (!(gain < 10000 && gain % 500 == 0)) {
           gamesPerHour += 1;
         }
       }
