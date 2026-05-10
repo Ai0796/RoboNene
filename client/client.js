@@ -15,6 +15,8 @@ const { AceBase } = require('acebase');
 
 const fs = require('fs');
 const path = require('path');
+const { Event } = require('./classes/Events');
+const { SekaiEventProcessor } = require('./classes/SekaiEventsObject');
 
 // Constants used to locate the directories of data
 const CLIENT_CONSTANTS = {
@@ -58,6 +60,8 @@ class DiscordClient {
     this.rateLimit = {};
     this.cutoffCache = null;
     this.errorCount = 0;
+    this.eventData = null;
+    this.SekaiEventObject = null;
 
     this.client = new Client({ 
       intents: [
@@ -247,30 +251,31 @@ class DiscordClient {
 
     // Read an encrypted database
     this.cutoffdb.pragma(`key='${secretKey}'`);
-    this.cutoffdb.pragma('journal_mode = DELETE');
+    this.cutoffdb.pragma('journal_mode = WAL');
+    this.cutoffdb.pragma('synchronous = NORMAL');
 
-    // Initialize the tracking database instance
-    this.cutoffdb.prepare('CREATE TABLE IF NOT EXISTS cutoffs ' +
-      '(EventID INTEGER, Tier INTEGER, Timestamp INTEGER, Score INTEGER, ID INTEGER, GameNum INTEGER, ' +
-      'PRIMARY KEY(EventID, Tier, Timestamp))').run();
+    // // Initialize the tracking database instance
+    // this.cutoffdb.prepare('CREATE TABLE IF NOT EXISTS cutoffs ' +
+    //   '(EventID INTEGER, Tier INTEGER, Timestamp INTEGER, Score INTEGER, ID INTEGER, GameNum INTEGER, ' +
+    //   'PRIMARY KEY(EventID, Tier, Timestamp))').run();
 
-    //Add an index to cutoffs
-    this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS IDs ON cutoffs (ID, Timestamp, Score)').run();
+    // //Add an index to cutoffs
+    // // this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS IDs ON cutoffs (ID, Timestamp, Score)').run();
 
-    //Add an index to cutoffs for user
-    this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS userIndex ON cutoffs (EventId, ID)').run();
+    // // //Add an index to cutoffs for user
+    // // this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS userIndex ON cutoffs (EventId, ID)').run();
 
-    // //Add an index to cutoffs for user
-    this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS EventIDTier ON cutoffs (EventId, Tier)').run();
+    // // // //Add an index to cutoffs for user
+    // // this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS EventIDTier ON cutoffs (EventId, Tier)').run();
 
-    // //Add an index to cutoffs for user
-    this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS EventIDTimestamp ON cutoffs (EventId, Timestamp)').run();
+    // // // //Add an index to cutoffs for user
+    // // this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS EventIDTimestamp ON cutoffs (EventId, Timestamp)').run();
 
-    // Initialize User Tracking
-    this.cutoffdb.prepare('CREATE TABLE IF NOT EXISTS users ' +
-      '(id INTEGER, Tier INTEGER, EventID INTEGER,' +
-      'Timestamp INTEGER, Score INTEGER,' +
-      'PRIMARY KEY(id, EventID, Timestamp))').run();
+    // // Initialize User Tracking
+    // this.cutoffdb.prepare('CREATE TABLE IF NOT EXISTS users ' +
+    //   '(id INTEGER, Tier INTEGER, EventID INTEGER,' +
+    //   'Timestamp INTEGER, Score INTEGER,' +
+    //   'PRIMARY KEY(id, EventID, Timestamp))').run();
   }
 
   /**
@@ -334,6 +339,13 @@ class DiscordClient {
     } else {
       return -1;
     }
+  }
+
+  async loadEventData() {
+    this.eventData = new Event();
+    this.SekaiEventObject = new SekaiEventProcessor();
+    await this.eventData.load();
+    this.SekaiEventObject.processEvents(this.eventData);
   }
 
   /**
@@ -562,7 +574,6 @@ class DiscordClient {
       worldLink = worldLink.filter((x) => x.eventId === eventId);
     }
     
-
     worldLink.forEach((x) => {
       x.character = `${this.getCharacterName(x.gameCharacterId)} (Event ${x.eventId})`;
       x.name = this.getCharacterName(x.gameCharacterId);
@@ -574,7 +585,7 @@ class DiscordClient {
   getCharacterName(characterId) {
     const gameCharacters = JSON.parse(fs.readFileSync('./sekai_master/gameCharacters.json'));
     const charInfo = gameCharacters[characterId - 1];
-    return `${charInfo.givenName} ${charInfo.firstName}`.trim();
+    return `${charInfo.givenName} ${charInfo.firstName ?? ''}`.trim();
   }
 
   /**
