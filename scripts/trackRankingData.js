@@ -33,7 +33,7 @@ const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) =
   const generateTrackingEmbed = async () => {
       let data = await discordClient.pgClient.selectTier(1, event.id);
 
-      let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+      let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
       let timestamps = rankData.map(x => x.timestamp);
       let lastTimestamp = timestamps[timestamps.length - 1];
 
@@ -51,10 +51,10 @@ const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) =
       let lastHourData = discordClient.pgClient.selectTimestamp(timestampIndex, event.id);
 
       lastHourData.forEach(data => {
-        let index = userIds.indexOf(data.ID);
+        let index = userIds.indexOf(data.id);
 
         if (index != -1) {
-          lastHourCutoffs[index] = data.Score;
+          lastHourCutoffs[index] = data.score;
         }
       });
 

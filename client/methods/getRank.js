@@ -90,9 +90,9 @@ const getRank = async (commandName, interaction, discordClient, requestParams) =
     let data = await discordClient.pgClient.selectUser(event.id, id);
     if (data.length > 0)
     {
-      let finalScore = data[data.length-1].Score;
-      let finalRank = data[data.length-1].Tier;
-      let finalTimestamp = data[data.length-1].Timestamp;
+      let finalScore = data[data.length-1].score;
+      let finalRank = data[data.length-1].tier;
+      let finalTimestamp = data[data.length-1].timestamp;
 
       await interaction.editReply({
         embeds: [

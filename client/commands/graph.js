@@ -87,14 +87,14 @@ const generateGraphEmbed = (graphUrl, tier, discordClient) => {
 
 async function getUserData(userId, event, discordClient) {
   let data = await discordClient.pgClient.selectUser(event.id, userId);
-  data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+  data = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
   data.unshift({ timestamp: event.startAt, score: 0 });
   return data;
 }
 
 async function getTierData(tier, event, discordClient) {
   let data = await discordClient.pgClient.selectTier(tier, event.id);
-  data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+  data = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
   data.unshift({ timestamp: event.startAt, score: 0 });
   return data;
 }

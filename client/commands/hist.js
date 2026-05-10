@@ -401,7 +401,7 @@ async function sendHistoricalTierRequest(eventData, tier, binSize, min, max, hou
     let userId = response[0]['ID'];//Get the last ID in the list
     let data = await discordClient.pgClient.selectUserID(eventData.id, userId);
     if (data.length > 0) {
-      let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+      let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
       rankData.unshift({ timestamp: eventData.startAt, score: 0 });
       rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
       // if (userId == 162304911000768500) {
@@ -429,7 +429,7 @@ async function sendTierRequest(eventData, tier, binSize, min, max, hourly, showG
     let userId = response['rankings'][0]['userId'];//Get the last ID in the list
     let data = await discordClient.pgClient.selectUserID(eventData.id, userId);
     if (data.length > 0) {
-      let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+      let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
       rankData.unshift({ timestamp: eventData.startAt, score: 0 });
       rankData.push({ timestamp: Date.now(), score: response['rankings'][0]['score'] });
       rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
@@ -497,9 +497,9 @@ module.exports = {
         noDataErrorMessage(interaction, discordClient);
         return;
       } else if (tier >= 200) {
-        let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+        let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
         rankData.unshift({ timestamp: eventData.startAt, score: 0 });
-        rankData.push({ timestamp: Date.now(), score: data[0].Score });
+        rankData.push({ timestamp: Date.now(), score: data[0].score });
         rankData.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : (b.timestamp > a.timestamp) ? -1 : 0);
         postQuickChart(interaction, `${eventData.name} T${tier} Cutoffs`, rankData, binSize, min, max, hourly, showGames, discordClient);
       } else if (eventData.id < discordClient.getCurrentEvent().id || event.id > LOCKED_EVENT_ID) {
@@ -524,7 +524,7 @@ module.exports = {
         let data = await discordClient.pgClient.selectUser(eventData.id, id);
         if (data.length > 0) {
           let name = user.displayName;
-          let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+          let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
           rankData.unshift({ timestamp: eventData.startAt, score: 0 });
           let title = `${eventData.name} ${name} Event Points`;
           postQuickChart(interaction, title, rankData, binSize, min, max, hourly, showGames, discordClient);

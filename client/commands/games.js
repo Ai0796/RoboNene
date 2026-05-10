@@ -177,8 +177,8 @@ async function getData(tier, eventId, eventData, discordClient, interaction) {
         let baseScores = [];
 
         data.forEach(x => {
-            if (!points.has(x.Score)) {
-                points.add(x.Score);
+            if (!points.has(x.score)) {
+                points.add(x.score);
             }
         });
 

@@ -83,7 +83,7 @@ async function userStatistics(user, eventId, eventData, discordClient, interacti
 
     if (data.length > 0) {
 
-        let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+        let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
         let title = `${user.displayName} Statistics`;
         tierStatisticsEmbed(rankData, title, discordClient, interaction);
     }
@@ -233,8 +233,8 @@ async function tierStatistics(tier, eventId, eventData, discordClient, interacti
         let rankData = [];
 
         data.forEach(x => {
-            if(!points.has(x.Score)){
-                rankData.push({ timestamp: x.Timestamp, score: x.Score });
+            if(!points.has(x.score)){
+                rankData.push({ timestamp: x.timestamp, score: x.score });
                 points.add(x.Score);
             }
         });
@@ -285,9 +285,9 @@ async function tierHistoricalStatistics(tier, eventId, eventData, discordClient,
         let rankData = [];
 
         data.forEach(x => {
-            if (!points.has(x.Score)) {
-                rankData.push({ timestamp: x.Timestamp, score: x.Score });
-                points.add(x.Score);
+            if (!points.has(x.score)) {
+                rankData.push({ timestamp: x.timestamp, score: x.score });
+                points.add(x.score);
             }
         });
         rankData.unshift({ timestamp: eventData.startAt, score: 0 });
