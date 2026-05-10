@@ -117,6 +117,9 @@ async function sendData(data, tier, eventId, eventData, discordClient, interacti
             }
         }
 
+        energyLength = Math.max(energyLength, 'MySekai'.length);
+        gamesLength = Math.max(gamesLength, `${mySekaiEnergyUsed}`.length);
+
         let embedStr = `\`${energyLabel} ${' '.repeat(energyLength - energyLabel.length)} ${' '.repeat(gamesLength - gamesLabel.length)}${gamesLabel}\`\n`;
 
         for (let i = 0; i < energyBoost.length; i++) {
