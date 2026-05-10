@@ -12,8 +12,7 @@ const COMMAND = require('../command_data/graph');
 const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 const getEventData = require('../methods/getEventData');
-const { fuzzy, search } = require('fast-fuzzy');
-const pattern = require('patternomaly');
+const { search } = require('fast-fuzzy');
 
 const colors = [
   '#FF77217F',
@@ -27,33 +26,33 @@ const colors = [
 ];
 
 const characterColors = {
-  "Ichika Hoshino": "#33AAEE7F",
-  "Saki Tenma": "#FFDD447F",
-  "Honami Mochizuki": "#EE66667F",
-  "Shiho Hinomori": "#BBDD227F",
-  "Minori Hanasato": "#FFCCAA7F",
-  "Haruka Kiritani": "#99CCFF7F",
-  "Airi Momoi": "#FFAACC7F",
-  "Shizuku Hinomori": "#99EEDD7F",
-  "Kohane Azusawa": "#FF66997F",
-  "An Shiraishi": "#00BBDD7F",
-  "Akito Shinonome": "#FF77227F",
-  "Toya Aoyagi": "#0077DD7F",
-  "Tsukasa Tenma": "#FFBB007F",
-  "Emu Otori": "#FF66BB7F",
-  "Nene Kusanagi": "#33DD997F",
-  "Rui Kamishiro": "#BB88EE7F",
-  "Kanade Yoisaki": "#BB66887F",
-  "Mafuyu Asahina": "#8888CC7F",
-  "Ena Shinonome": "#CCAA887F",
-  "Mizuki Akiyama": "#DDAACC7F",
-  "Hatsune Miku": "#33CCBB7F",
-  "Kagamine Rin": "#FFCC117F",
-  "Kagamine Len": "#FFEE117F",
-  "Megurine Luka": "#FFBBCC7F",
-  "MEIKO": "#DD44447F",
-  "KAITO": "#3366CC7F"
-}
+  'Ichika Hoshino': '#33AAEE7F',
+  'Saki Tenma': '#FFDD447F',
+  'Honami Mochizuki': '#EE66667F',
+  'Shiho Hinomori': '#BBDD227F',
+  'Minori Hanasato': '#FFCCAA7F',
+  'Haruka Kiritani': '#99CCFF7F',
+  'Airi Momoi': '#FFAACC7F',
+  'Shizuku Hinomori': '#99EEDD7F',
+  'Kohane Azusawa': '#FF66997F',
+  'An Shiraishi': '#00BBDD7F',
+  'Akito Shinonome': '#FF77227F',
+  'Toya Aoyagi': '#0077DD7F',
+  'Tsukasa Tenma': '#FFBB007F',
+  'Emu Otori': '#FF66BB7F',
+  'Nene Kusanagi': '#33DD997F',
+  'Rui Kamishiro': '#BB88EE7F',
+  'Kanade Yoisaki': '#BB66887F',
+  'Mafuyu Asahina': '#8888CC7F',
+  'Ena Shinonome': '#CCAA887F',
+  'Mizuki Akiyama': '#DDAACC7F',
+  'Hatsune Miku': '#33CCBB7F',
+  'Kagamine Rin': '#FFCC117F',
+  'Kagamine Len': '#FFEE117F',
+  'Megurine Luka': '#FFBBCC7F',
+  'MEIKO': '#DD44447F',
+  'KAITO': '#3366CC7F'
+};
 
 // using patternomoly library
 const patterns = [
@@ -85,6 +84,20 @@ const generateGraphEmbed = (graphUrl, tier, discordClient) => {
 
   return graphEmbed;
 };
+
+async function getUserData(userId, event, discordClient) {
+  let data = await discordClient.pgClient.selectUserID(event.id, userId);
+  data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+  data.unshift({ timestamp: event.startAt, score: 0 });
+  return data;
+}
+
+async function getTierData(tier, event, discordClient) {
+  let data = await discordClient.pgClient.selectTier(tier, event.id);
+  data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+  data.unshift({ timestamp: event.startAt, score: 0 });
+  return data;
+}
 
 /**
  * Ensures a string is ASCII to be sent through HTML
@@ -125,13 +138,13 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
   let interpolate = 1;
 
   if (rankDatas.length > 2) {
-    interpolate = rankDatas.length // If we have too many graphs only get every X points to reduce size
+    interpolate = rankDatas.length; // If we have too many graphs only get every X points to reduce size
   }
 
   rankDatas = rankDatas.map((rankData, i) => {
 
     let j = 0;
-    startTime = events[i].startAt ?? Math.min(...rankData.map(p => p.timestamp));
+    let startTime = events[i].startAt ?? Math.min(...rankData.map(p => p.timestamp));
 
     return rankData.map(point => {
       j++;
@@ -162,7 +175,7 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
   let usedColors = [];
   let usedPatterns = [];
 
-  let characters = events.map(event => discordClient.SekaiEventObject.getCharacter(event.chapterId ?? event.id))
+  let characters = events.map(event => discordClient.SekaiEventObject.getCharacter(event.chapterId ?? event.id));
   let characterDict = {};
 
   characters.forEach(character => {
@@ -173,9 +186,8 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
     }
 
     usedColors.push(characterColors[character] || usableColors[usedColors.length % colorLen]);
-    usedPatterns.push(patterns[characterDict[character] % patterns.length], usedColors[usedColors.length - 1]) // If we have multiple of the same character use patterns to differentiate;
+    usedPatterns.push(patterns[characterDict[character] % patterns.length], usedColors[usedColors.length - 1]); // If we have multiple of the same character use patterns to differentiate;
   });
-
   console.log(usedColors, usedPatterns);
 
 
@@ -193,7 +205,7 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
       // ],
       // 'borderDashOffset': i,
       'borderColor': usedColors[i],
-      'backgroundColor': usedColors[i] ?? "",
+      'backgroundColor': usedColors[i] ?? '',
       'order': totalEvents - i,
       'data': rankData
     };
@@ -283,38 +295,6 @@ async function noDataErrorMessage(interaction, discordClient) {
     ]
   });
   return;
-}
-
-function getUserData(userId, event, discordClient) {
-  let data = await discordClient.pgClient.selectUserID(event.id, userId);
-  data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-  data.unshift({ timestamp: event.startAt, score: 0 });
-  return data;
-}
-
-function getTierData(tier, event, discordClient) {
-  let data = discordClient.pgClient.selectTier(tier, event.id);
-  data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-  data.unshift({ timestamp: event.startAt, score: 0 });
-  return data;
-}
-
-function getTierPlayerData(tier, event, discordClient) {
-
-  let data = await discordClient.pgClient.selectTier(tier, event.id);
-
-  if (data.length > 0) {
-    let userId = data[0]['ID'];//Get the last ID in the list
-    data = await discordClient.pgClient.selectUserID(event.id, userId);
-    if (data.length > 0) {
-      let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
-      rankData.unshift({ timestamp: event.startAt, score: 0 });
-
-      return rankData;
-    }
-  }
-
-  return [];
 }
 
 module.exports = {
@@ -414,11 +394,12 @@ module.exports = {
     if (tier) {
       if (graphTier) {
         let data = [];
-        splitTiers.forEach(tierNum => {
-          eventsUnique.forEach(event => {
-            data.push(getTierData(tierNum, event, discordClient));
-          });
-        });
+        for (const tierNum of splitTiers) {
+          for (const event of eventsUnique) {
+            const tierData = await getTierData(tierNum, event, discordClient);
+            data.push(tierData);
+          }
+        }
         data = data.filter(x => x.length > 0);
         if (data.length === 0) {
           noDataErrorMessage(interaction, discordClient);
@@ -427,11 +408,12 @@ module.exports = {
         postQuickChart(interaction, `${tierName}`, data, events, discordClient);
       } else {
         let data = [];
-        splitTiers.forEach(tierNum => {
-          eventsUnique.forEach(event => {
-            data.push(getTierData(tierNum, event, discordClient));
-          });
-        });
+        for (const tierNum of splitTiers) {
+          for (const event of eventsUnique) {
+            const tierData = await getTierData(tierNum, event, discordClient);
+            data.push(tierData);
+          }
+        }
         console.log(data.length, events.length);
         data = data.filter(x => x.length > 0);
         if (data.length === 0) {
@@ -454,7 +436,11 @@ module.exports = {
           return;
         }
 
-        let data = events.map(event => getUserData(id, event.id, discordClient));
+        let data = await Promise.all(
+            events.map(async (event) => {
+                return await getUserData(id, event.id, discordClient);
+            })
+        );
         data = data.filter(x => x.length > 0);
         if (data.length > 0) {
           let name = user.displayName;
