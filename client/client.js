@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { Event } = require('./classes/Events');
 const { SekaiEventProcessor } = require('./classes/SekaiEventsObject');
+const { connect, pgClient } = require('./pgClient');
 
 // Constants used to locate the directories of data
 const CLIENT_CONSTANTS = {
@@ -246,36 +247,9 @@ class DiscordClient {
    * the databases for usage.
    * @param {string} dir the directory containing the encrypted databases
    */
-  loadCutoffDb(dir = CLIENT_CONSTANTS.CUTOFF_DB_DIR) {
-    this.cutoffdb = new Database(`${dir}/${CLIENT_CONSTANTS.CUTOFF_DB_NAME}`);
-
-    // Read an encrypted database
-    this.cutoffdb.pragma(`key='${secretKey}'`);
-    this.cutoffdb.pragma('journal_mode = WAL');
-    this.cutoffdb.pragma('synchronous = NORMAL');
-
-    // // Initialize the tracking database instance
-    // this.cutoffdb.prepare('CREATE TABLE IF NOT EXISTS cutoffs ' +
-    //   '(EventID INTEGER, Tier INTEGER, Timestamp INTEGER, Score INTEGER, ID INTEGER, GameNum INTEGER, ' +
-    //   'PRIMARY KEY(EventID, Tier, Timestamp))').run();
-
-    // //Add an index to cutoffs
-    // // this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS IDs ON cutoffs (ID, Timestamp, Score)').run();
-
-    // // //Add an index to cutoffs for user
-    // // this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS userIndex ON cutoffs (EventId, ID)').run();
-
-    // // // //Add an index to cutoffs for user
-    // // this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS EventIDTier ON cutoffs (EventId, Tier)').run();
-
-    // // // //Add an index to cutoffs for user
-    // // this.cutoffdb.prepare('CREATE INDEX IF NOT EXISTS EventIDTimestamp ON cutoffs (EventId, Timestamp)').run();
-
-    // // Initialize User Tracking
-    // this.cutoffdb.prepare('CREATE TABLE IF NOT EXISTS users ' +
-    //   '(id INTEGER, Tier INTEGER, EventID INTEGER,' +
-    //   'Timestamp INTEGER, Score INTEGER,' +
-    //   'PRIMARY KEY(id, EventID, Timestamp))').run();
+  async loadCutoffDb() {
+    this.cutoffdb = new pgClient();
+    await this.cutoffdb.connect();
   }
 
   /**
