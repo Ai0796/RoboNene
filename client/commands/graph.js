@@ -286,22 +286,14 @@ async function noDataErrorMessage(interaction, discordClient) {
 }
 
 function getUserData(userId, event, discordClient) {
-  let data = discordClient.cutoffdb.prepare('SELECT * FROM users ' +
-    'WHERE (id=@id AND EventID=@eventID)').all({
-      id: userId,
-      eventID: event.id
-    });
+  let data = await discordClient.pgClient.selectUserID(event.id, userId);
   data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
   data.unshift({ timestamp: event.startAt, score: 0 });
   return data;
 }
 
 function getTierData(tier, event, discordClient) {
-  let data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-    'WHERE (Tier=@tier AND EventID=@eventID)').all({
-      tier: tier,
-      eventID: event.id
-    });
+  let data = discordClient.pgClient.selectTier(tier, event.id);
   data = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
   data.unshift({ timestamp: event.startAt, score: 0 });
   return data;
@@ -309,19 +301,11 @@ function getTierData(tier, event, discordClient) {
 
 function getTierPlayerData(tier, event, discordClient) {
 
-  let data = discordClient.cutoffdb.prepare('SELECT ID, Score FROM cutoffs ' +
-    'WHERE (EventID=@eventID AND Tier=@tier) ORDER BY TIMESTAMP DESC').all({
-      eventID: event.id,
-      tier: tier
-    });
+  let data = await discordClient.pgClient.selectTier(tier, event.id);
 
   if (data.length > 0) {
     let userId = data[0]['ID'];//Get the last ID in the list
-    data = discordClient.cutoffdb.prepare('SELECT * FROM cutoffs ' +
-      'WHERE (ID=@id AND EventID=@eventID)').all({
-        id: userId,
-        eventID: event.id
-      });
+    data = await discordClient.pgClient.selectUserID(event.id, userId);
     if (data.length > 0) {
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
       rankData.unshift({ timestamp: event.startAt, score: 0 });
