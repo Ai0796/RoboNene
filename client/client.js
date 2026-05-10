@@ -47,7 +47,7 @@ class DiscordClient {
     this.commands = [];
     this.logger = null;
     this.db = null;
-    this.cutoffdb = null;
+    this.pgClient = null;
     this.prayerdb = null;
     this.stockdb = null;
 
@@ -248,8 +248,8 @@ class DiscordClient {
    * @param {string} dir the directory containing the encrypted databases
    */
   async loadCutoffDb() {
-    this.cutoffdb = new pgClient();
-    await this.cutoffdb.connect();
+    this.pgClient = new pgClient();
+    await this.pgClient.connect();
   }
 
   /**
