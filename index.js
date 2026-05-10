@@ -15,8 +15,11 @@ const updateActivity = require('./scripts/updateActivity');
 const fs = require('fs');
 const { trackTwitterData } = require('./scripts/trackTwitterData');
 
+console.log('Loading game data...');
+
 loadMusicMeta(0);
 loadGameData(50, async () => {
+  console.log('Finished loading game data, starting bot...');
   const client = new DiscordClient();
   client.loadCommands();
   client.loadEvents();
@@ -25,6 +28,10 @@ loadGameData(50, async () => {
   client.loadLogger();
   // client.loadMessageHandler();
   client.loadServerHandler();
+  client.loadEventData();
+
+  client.loadPrayerDb();
+  client.loadStockDb();
 
   await client.login();
   await client.loadSekaiClient();
@@ -39,9 +46,7 @@ loadGameData(50, async () => {
   // trackTwitterData(client);
 
   // Lower Priority Tasks
-  updateActivity(client);
-  client.loadPrayerDb();
-  client.loadStockDb();
+  // updateActivity(client);
 
   //This is a very duct tape solution
   if(fs.existsSync('messages.json')) {
