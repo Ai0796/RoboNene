@@ -149,11 +149,8 @@ async function getData(tier, eventId, eventData, discordClient, interaction) {
         targetRank: tier,
         lowerLimit: 0
     }, async (response) => {
-        let data = discordClient.cutoffdb.prepare('SELECT Timestamp, Score FROM cutoffs ' +
-            'WHERE (EventID=@eventID AND ID=@id)').all({
-                id: response['rankings'][tier - 1]['userId'],
-                eventID: eventId
-            });
+
+        let data = await discordClient.pgClient.selectUserID(eventId, response['rankings'][tier - 1]['userId']);
 
         if (data.length == 0) {
             let reply = 'Please input a tier in the range 1-100';
