@@ -51,10 +51,24 @@ class pgClient {
 
     // Typical commands
     async insertTiers(values) {
-        await this.client.query('BEGIN');
-        const queryText = format('INSERT INTO cutoffs (EventID, Tier, Timestamp, Score, ID, GameNum) VALUES %L', values);
-        await this.client.query(queryText);
-        await this.client.query('COMMIT');
+        // 1. Checkout a dedicated connection
+        const dbClient = await this.client.connect(); 
+        try {
+            await dbClient.query('BEGIN');
+            
+            // 2. Format and execute on that specific connection
+            const queryText = format('INSERT INTO cutoffs (EventID, Tier, Timestamp, Score, ID, GameNum) VALUES %L', values);
+            await dbClient.query(queryText);
+            
+            await dbClient.query('COMMIT');
+        } catch (err) {
+            await dbClient.query('ROLLBACK');
+            console.error('Transaction failed:', err);
+            throw err;
+        } finally {
+            // 3. Return the connection to the pool
+            dbClient.release(); 
+        }
     }
 
     async selectTier(tier, eventID, limit=null) {
