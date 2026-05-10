@@ -105,7 +105,7 @@ class pgClient {
             }
 
             const queryText = format(
-                'INSERT INTO cutoffs (event_id, tier, timestamp, score, user_id, game_num) VALUES %L', 
+                'INSERT INTO cutoffs (eventid, tier, timestamp, score, id, gamenum) VALUES %L', 
                 processedValues
             );
             
@@ -132,9 +132,9 @@ class pgClient {
     }
 
     async selectTimestamp(timestamp, eventID, limit=null) {
-        const queryText = 'SELECT * FROM cutoffs WHERE Timestamp = $1 AND EventID = $2 ORDER BY Timestamp DESC' + (limit !== null ? ' LIMIT $3' : '');
+        const queryText = 'SELECT * FROM cutoffs WHERE Timestamp = $1 AND EventID = $2' + (limit !== null ? ' LIMIT $3' : '');
         const res = await this.client.query(queryText, limit !== null ? [timestamp, eventID, limit] : [timestamp, eventID]);
-        return res.rows;
+        return res.rows ?? [];
     }
 
     async selectUserID(eventID, sekaiID, limit = null) {
