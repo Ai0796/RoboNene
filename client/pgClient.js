@@ -1,7 +1,11 @@
 const { Pool } =  require('pg');
+const pg = require('pg');
 const { PG_Key } = require('../config.json');
 const format = require('pg-format');
 
+pg.types.setTypeParser(20, (val) => {
+    return parseInt(val, 10);
+});
 
 class pgClient {
     constructor() {
