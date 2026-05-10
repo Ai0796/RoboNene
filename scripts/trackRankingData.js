@@ -31,48 +31,53 @@ function getLastHour(sortedList, el) {
  */
 const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) => {
   const generateTrackingEmbed = async () => {
-      let data = await discordClient.pgClient.selectTier(1, event.id);
+      try {
+        let data = await discordClient.pgClient.selectTier(1, event.id);
 
-      let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
-      let timestamps = rankData.map(x => x.timestamp);
-      let lastTimestamp = timestamps[timestamps.length - 1];
+        let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
+        let timestamps = rankData.map(x => x.timestamp);
+        let lastTimestamp = timestamps[timestamps.length - 1];
 
-      let lastHourIndex = getLastHour(timestamps, lastTimestamp - HOUR);
-      let timestampIndex = timestamps[lastHourIndex];
+        let lastHourIndex = getLastHour(timestamps, lastTimestamp - HOUR);
+        let timestampIndex = timestamps[lastHourIndex];
 
-      let lastHourCutoffs = [];
-      let userIds = [];
+        let lastHourCutoffs = [];
+        let userIds = [];
 
-      for(let i = 0; i < rankingData.length; i++) {
-        lastHourCutoffs.push(-1);
-        userIds.push(rankingData[i].userId);
-      }
-
-      let lastHourData = discordClient.pgClient.selectTimestamp(timestampIndex, event.id);
-
-      lastHourData.forEach(data => {
-        let index = userIds.indexOf(data.id);
-
-        if (index != -1) {
-          lastHourCutoffs[index] = data.score;
+        for(let i = 0; i < rankingData.length; i++) {
+          lastHourCutoffs.push(-1);
+          userIds.push(rankingData[i].userId);
         }
-      });
 
-      let mobile = false;
+        let lastHourData = await discordClient.pgClient.selectTimestamp(timestampIndex, event.id);
 
-      let leaderboardText = generateRankingText(rankingData, 1, null, lastHourCutoffs, mobile);
-      
-      let leaderboardEmbed = new EmbedBuilder()
-        .setColor(NENE_COLOR)
-        .setTitle(`${event.name}`)
-        .setDescription(`T20 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>`)
-        .addFields(
-          {name: 'T20', value: leaderboardText, inline: false}
-        )
-        .setThumbnail(event.banner)
-        .setTimestamp();
-  
-      return leaderboardEmbed;
+        
+        lastHourData.forEach(data => {
+          let index = userIds.indexOf(data.id);
+
+          if (index != -1) {
+            lastHourCutoffs[index] = data.score;
+          }
+        });
+
+        let mobile = false;
+
+        let leaderboardText = generateRankingText(rankingData, 1, null, lastHourCutoffs, mobile);
+        
+        let leaderboardEmbed = new EmbedBuilder()
+          .setColor(NENE_COLOR)
+          .setTitle(`${event.name}`)
+          .setDescription(`T20 Leaderboard at <t:${Math.floor(timestamp / 1000)}>\nChange since <t:${Math.floor(timestampIndex / 1000)}>`)
+          .addFields(
+            {name: 'T20', value: leaderboardText, inline: false}
+          )
+          .setThumbnail(event.banner)
+          .setTimestamp();
+    
+        return leaderboardEmbed;
+      } catch (e) {
+        console.log('Error occured while generating tracking embed: ', e);
+      }
   };
   
   const send = async (target, embed) => {
@@ -85,7 +90,7 @@ const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) =
           await channel.send({ embeds: [embed] });
           return;
         } catch {
-          console.log(`Failed to send message to ${target.channel_id}`);
+          // console.log(`Failed to send message to ${target.channel_id}`);
         }
       }
     }
