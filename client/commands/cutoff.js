@@ -444,7 +444,7 @@ module.exports = {
         generateCutoff({ interaction: interaction, event: world_link, timestamp: rankData[rankData.length - 1].timestamp, tier: tier, score: rankData[rankData.length - 1].score, rankData: rankData, detailed: detailed, discordClient: discordClient });
       } else {
         let cutoffs = await discordClient.pgClient.selectTier(tier, event.id);
-        let rankData = cutoffs.map(x => ({ timestamp: x.timestamp, score: x.timestamp }));
+        let rankData = cutoffs.map(x => ({ timestamp: x.timestamp, score: x.score }));
         rankData.sort((a, b) => a.timestamp - b.timestamp);
 
         generateCutoff({ interaction: interaction, event: event, timestamp: rankData[rankData.length - 1].timestamp, tier: tier, score: rankData[rankData.length - 1].score, rankData: rankData, detailed: detailed, discordClient: discordClient });
