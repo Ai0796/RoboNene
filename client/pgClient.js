@@ -15,6 +15,9 @@ class pgClient {
             idleTimeoutMillis: 30000,
         });
 
+        this.idCache = new Map();
+        this.MAX_CACHE_SIZE = 1000;
+
         this.client.on('error', (err) => {
             console.error('Unexpected error on idle PostgreSQL client', err);
         });
@@ -49,24 +52,65 @@ class pgClient {
         }
     }
 
+    // Helper to manage the cache size
+    async _getInternalID(sekaiID, dbClient) {
+        const dID = String(sekaiID);
+
+        // 1. Check RAM Cache first
+        if (this.idCache.has(dID)) {
+            return this.idCache.get(dID);
+        }
+
+        // 2. Not in RAM, hit the DB (Upsert logic)
+        const userRes = await dbClient.query(`
+            INSERT INTO id_mapping (sekai_id) 
+            VALUES ($1) 
+            ON CONFLICT (sekai_id) DO UPDATE SET sekai_id = EXCLUDED.sekai_id
+            RETURNING internal_id`, 
+            [dID]
+        );
+
+        const internalID = userRes.rows[0].internal_id;
+
+        // 3. Add to Cache and maintain size (Remove oldest entry if full)
+        if (this.idCache.size >= this.MAX_CACHE_SIZE) {
+            // Map keys are ordered by insertion; this removes the oldest
+            const firstKey = this.idCache.keys().next().value;
+            this.idCache.delete(firstKey);
+        }
+        this.idCache.set(dID, internalID);
+
+        return internalID;
+    }
+
     // Typical commands
     async insertTiers(values) {
-        // 1. Checkout a dedicated connection
         const dbClient = await this.client.connect(); 
         try {
             await dbClient.query('BEGIN');
+
+            const processedValues = [];
+
+            for (const row of values) {
+                const [eventID, tier, timestamp, score, sekaiID, gameNum] = row;
+
+                // Use the helper with caching
+                const internalID = await this._getInternalID(sekaiID, dbClient);
+
+                processedValues.push([eventID, tier, timestamp, score, internalID, gameNum]);
+            }
+
+            const queryText = format(
+                'INSERT INTO cutoffs (event_id, tier, timestamp, score, user_id, game_num) VALUES %L', 
+                processedValues
+            );
             
-            // 2. Format and execute on that specific connection
-            const queryText = format('INSERT INTO cutoffs (EventID, Tier, Timestamp, Score, ID, GameNum) VALUES %L', values);
             await dbClient.query(queryText);
-            
             await dbClient.query('COMMIT');
         } catch (err) {
             await dbClient.query('ROLLBACK');
-            console.error('Transaction failed:', err);
             throw err;
         } finally {
-            // 3. Return the connection to the pool
             dbClient.release(); 
         }
     }
@@ -89,9 +133,23 @@ class pgClient {
         return res.rows;
     }
 
-    async selectUserID(eventID, userID, limit=null) {
-        const queryText = 'SELECT * FROM cutoffs WHERE EventID = $1 AND ID = $2' + (limit !== null ? ' LIMIT $3' : '');
-        const res = await this.client.query(queryText, limit !== null ? [eventID, userID, limit] : [eventID, userID]);
+    async selectUserID(eventID, sekaiID, limit = null) {
+        let internalID = await this._getInternalID(sekaiID, this.client);
+        if (!internalID) return [];
+        
+        const queryText = `SELECT * FROM cutoffs WHERE eventid = $1 AND id = $2 ${limit !== null ? 'LIMIT $3' : ''}`;
+        const params = limit !== null ? [eventID, internalID, limit] : [eventID, internalID];
+        const res = await this.client.query(queryText, params);
+        return res.rows;
+    }
+
+    async selectUser(eventID, sekaiID, limit = null) {
+        let internalID = await this._getInternalID(sekaiID, this.client);
+        if (!internalID) return [];
+
+        const queryText = `SELECT * FROM users WHERE eventid = $1 AND id = $2 ${limit !== null ? 'LIMIT $3' : ''}`;
+        const params = limit !== null ? [eventID, internalID, limit] : [eventID, internalID];
+        const res = await this.client.query(queryText, params);
         return res.rows;
     }
 }

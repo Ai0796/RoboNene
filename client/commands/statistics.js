@@ -79,7 +79,7 @@ async function userStatistics(user, eventId, eventData, discordClient, interacti
         return;
     }
 
-    let data = await discordClient.pgClient.selectUserID(eventId, id);
+    let data = await discordClient.pgClient.selectUser(eventId, id);
 
     if (data.length > 0) {
 
