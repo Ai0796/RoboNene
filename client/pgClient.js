@@ -128,7 +128,7 @@ class pgClient {
     }
 
     async selectTimestamp(timestamp, eventID, limit=null) {
-        const queryText = 'SELECT * FROM cutoffs WHERE Timestamp = $1 AND EventID = $2 DESC' + (limit !== null ? ' LIMIT $3' : '');
+        const queryText = 'SELECT * FROM cutoffs WHERE Timestamp = $1 AND EventID = $2 ORDER BY Timestamp DESC' + (limit !== null ? ' LIMIT $3' : '');
         const res = await this.client.query(queryText, limit !== null ? [timestamp, eventID, limit] : [timestamp, eventID]);
         return res.rows;
     }
