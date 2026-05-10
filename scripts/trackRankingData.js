@@ -32,7 +32,7 @@ function getLastHour(sortedList, el) {
  * @param {DiscordClient} discordClient the client we are using to interact with Discord
  */
 const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) => {
-  const generateTrackingEmbed = () => {
+  const generateTrackingEmbed = async () => {
       let data = await discordClient.pgClient.selectTier(1, event.id);
 
       let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
@@ -105,7 +105,7 @@ const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) =
   };
 
   if (rankingData.length > 0) {
-    const trackingEmbed = generateTrackingEmbed();
+    const trackingEmbed = await generateTrackingEmbed();
 
     const channels = await removeDuplicates(discordClient.db.prepare('SELECT * FROM tracking').all());
 

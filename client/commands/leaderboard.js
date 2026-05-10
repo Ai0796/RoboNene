@@ -28,7 +28,7 @@ function getLastHour(sortedList, el) {
 
 const HOUR = 3600000;
 
-function getLastHourData(response, rankingData, event, discordClient) {
+async function getLastHourData(response, rankingData, event, discordClient) {
   let data = await discordClient.pgClient.selectUserID(event.id, response['rankings'][0]['userId']);
 
   let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
@@ -198,7 +198,7 @@ module.exports = {
       let start = page * RESULTS_PER_PAGE;
       let end = start + RESULTS_PER_PAGE;
 
-      let overallData = getLastHourData(response, rankingData, event, discordClient);
+      let overallData = await getLastHourData(response, rankingData, event, discordClient);
       var chapterData, chapterRankingData;
 
       let [lastHourCutoffs, tierChange, GPH, gamesPlayed, timestampIndex] = overallData;
@@ -208,7 +208,7 @@ module.exports = {
         console.log(worldLink.chapterNo);
         worldLink.id = parseInt(`${worldLink.eventId}${worldLink.gameCharacterId}`);
         let data = response.userWorldBloomChapterRankings[worldLink.chapterNo - 1];
-        chapterData = getLastHourData(data, data.rankings, worldLink, discordClient);
+        chapterData = await getLastHourData(data, data.rankings, worldLink, discordClient);
         chapterRankingData = response.userWorldBloomChapterRankings[worldLink.chapterNo - 1].rankings;
         [lastHourCutoffs, tierChange, GPH, gamesPlayed, timestampIndex] = chapterData;
         rankingData = chapterRankingData;
