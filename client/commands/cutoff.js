@@ -432,7 +432,7 @@ module.exports = {
         }
 
         let world_link = getWorldLink(event.id);
-        let cutoffs = await discordClient.pgClient.selectTier(tier, parseInt(`${event.id}${world_link.gameCharacterId}`));
+        let cutoffs = await discordClient.pgClient.selectTier(parseInt(`${event.id}${world_link.gameCharacterId}`) , tier);
         
         let rankData = cutoffs.map(x => ({ timestamp: x.timestamp, score: x.score }));
         rankData.sort((a, b) => a.timestamp - b.timestamp);
@@ -443,7 +443,7 @@ module.exports = {
 
         generateCutoff({ interaction: interaction, event: world_link, timestamp: rankData[rankData.length - 1].timestamp, tier: tier, score: rankData[rankData.length - 1].score, rankData: rankData, detailed: detailed, discordClient: discordClient });
       } else {
-        let cutoffs = await discordClient.pgClient.selectTier(tier, event.id);
+        let cutoffs = await discordClient.pgClient.selectTier(event.id, tier);
         let rankData = cutoffs.map(x => ({ timestamp: x.timestamp, score: x.score }));
         rankData.sort((a, b) => a.timestamp - b.timestamp);
 

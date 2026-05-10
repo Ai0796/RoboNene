@@ -300,14 +300,14 @@ async function noDataErrorMessage(interaction, discordClient) {
 
 async function sendHistoricalTierRequest(eventData, tier, interaction, hour, discordClient) {
 
-  let response = await discordClient.pgClient.selectTierDESC(tier, eventData.id);
+  let response = await discordClient.pgClient.selectTierDESC(eventData.id, tier);
 
   if (response.length == 0) {
     noDataErrorMessage(interaction, discordClient);
   } else {
     let userId = response[0]['id']; //Get the last ID in the list
 
-    let data = await discordClient.pgClient.selectUserID(eventData.id, userId);
+    let data = await discordClient.pgClient.selectUserByInternalID(eventData.id, userId);
     if (data.length > 0) {
       let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
       let title = `${eventData.name} T${tier} Heatmap`;
@@ -385,7 +385,7 @@ module.exports = {
 
     if(tier)
     {
-      let data = await discordClient.pgClient.selectTier(tier, eventData.id);
+      let data = await discordClient.pgClient.selectTier(eventData.id, tier);
       if (data.length == 0) {
         noDataErrorMessage(interaction, discordClient);
         return;

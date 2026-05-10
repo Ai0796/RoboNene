@@ -1465,7 +1465,7 @@ async function sendHistoricalTierRequest(eventData, tier, interaction, offset, p
   } else {
     let userId = response[0]['id']; //Get the last ID in the list
     
-    let data = await discordClient.pgClient.selectUserID(eventData.id, userId);
+    let data = await discordClient.pgClient.selectUserByInternalID(eventData.id, userId);
     if (data.length > 0) {
       let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
       let title = `${eventData.name} T${tier} Heatmap`;

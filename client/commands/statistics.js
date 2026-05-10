@@ -255,11 +255,11 @@ async function tierStatistics(tier, eventId, eventData, discordClient, interacti
 
 async function tierHistoricalStatistics(tier, eventId, eventData, discordClient, interaction) {
     
-    let response = await discordClient.pgClient.selectTierDESC(tier, eventData.id);
+    let response = await discordClient.pgClient.selectTierDESC(eventData.id, tier);
 
     if (response.length > 0) {
 
-        let data = await discordClient.pgClient.selectUserID(eventId, response[0].ID);
+        let data = await discordClient.pgClient.selectUserByInternalID(eventId, response[0].id);
 
         if (data.length == 0) {
             let reply = 'Please input a tier in the range 1-100 or input 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, or 50000';

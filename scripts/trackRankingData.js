@@ -32,7 +32,7 @@ function getLastHour(sortedList, el) {
 const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) => {
   const generateTrackingEmbed = async () => {
       try {
-        let data = await discordClient.pgClient.selectTier(1, event.id);
+        let data = await discordClient.pgClient.selectTier(event.id, 1);
 
         let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
         let timestamps = rankData.map(x => x.timestamp);
@@ -49,7 +49,7 @@ const sendTrackingEmbed = async (rankingData, event, timestamp, discordClient) =
           userIds.push(rankingData[i].userId);
         }
 
-        let lastHourData = await discordClient.pgClient.selectTimestamp(timestampIndex, event.id);
+        let lastHourData = await discordClient.pgClient.selectTimestamp(event.id, timestampIndex);
 
         
         lastHourData.forEach(data => {

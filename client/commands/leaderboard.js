@@ -53,14 +53,14 @@ async function getLastHourData(response, rankingData, event, discordClient) {
     userIds.push(rankingData[i].userId);
   }
 
-  let currentData = await discordClient.pgClient.selectTimestamp(lastTimestamp, event.id);
+  let currentData = await discordClient.pgClient.selectTimestamp(event.id, lastTimestamp);
 
-  let lastHourData = await discordClient.pgClient.selectTimestamp(timestampIndex, event.id);
+  let lastHourData = await discordClient.pgClient.selectTimestamp(event.id, timestampIndex);
 
-  lastHourData.sort((a, b) => a.Tier - b.Tier);
+  lastHourData.sort((a, b) => a.tier - b.tier);
   let currentGamesPlayed = {};
   currentData.forEach(x => {
-    currentGamesPlayed[x.id] = { 'id': x.id, 'score': x.score, 'games': x.games || 0, 'tier': x.tier };
+    currentGamesPlayed[x.id] = { 'id': x.id, 'score': x.score, 'games': x.gamenum || 0, 'tier': x.tier };
   });
 
   lastHourData.forEach((data) => {

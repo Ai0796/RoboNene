@@ -93,7 +93,7 @@ async function getUserData(userId, event, discordClient) {
 }
 
 async function getTierData(tier, event, discordClient) {
-  let data = await discordClient.pgClient.selectTier(tier, event.id);
+  let data = await discordClient.pgClient.selectTier(event.id, tier);
   data = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
   data.unshift({ timestamp: event.startAt, score: 0 });
   return data;

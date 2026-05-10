@@ -57,7 +57,12 @@ class pgClient {
     }
 
     // Helper to manage the cache size
-    async _getInternalID(sekaiID, dbClient) {
+    async _getInternalID(sekaiID, dbClient=null) {
+        let spawned = false;
+        if (!dbClient) {
+            dbClient = await this.client.connect();
+            spawned = true;
+        }
         const dID = String(sekaiID);
 
         // 1. Check RAM Cache first
@@ -84,6 +89,9 @@ class pgClient {
         }
         this.idCache.set(dID, internalID);
 
+        if (spawned) {
+            dbClient.release();
+        }
         return internalID;
     }
 
@@ -119,39 +127,63 @@ class pgClient {
         }
     }
 
-    async selectTier(tier, eventID, limit=null) {
+    async selectTier(eventID, tier, limit=null) {
         const queryText = 'SELECT * FROM cutoffs WHERE Tier = $1 AND EventID = $2' + (limit !== null ? ' LIMIT $3' : '');
+        
+        console.log('Executing query:', queryText, 'with params:', limit !== null ? [tier, eventID, limit] : [tier, eventID]);
+        
         const res = await this.client.query(queryText, limit !== null ? [tier, eventID, limit] : [tier, eventID]);
         return res.rows;
     }
 
-    async selectTierDESC(tier, eventID, limit=null) {
+    async selectTierDESC(eventID, tier, limit=null) {
         const queryText = 'SELECT * FROM cutoffs WHERE Tier = $1 AND EventID = $2 ORDER BY Score DESC' + (limit !== null ? ' LIMIT $3' : '');
+        
+        console.log('Executing selectTierDESC:', queryText, 'with params:', limit !== null ? [tier, eventID, limit] : [tier, eventID]);
+
         const res = await this.client.query(queryText, limit !== null ? [tier, eventID, limit] : [tier, eventID]);
         return res.rows;
     }
 
-    async selectTimestamp(timestamp, eventID, limit=null) {
+    async selectTimestamp(eventID, timestamp, limit=null) {
         const queryText = 'SELECT * FROM cutoffs WHERE Timestamp = $1 AND EventID = $2' + (limit !== null ? ' LIMIT $3' : '');
+        
+        console.log('Executing selectTimestamp:', queryText, 'with params:', limit !== null ? [timestamp, eventID, limit] : [timestamp, eventID]);
+
         const res = await this.client.query(queryText, limit !== null ? [timestamp, eventID, limit] : [timestamp, eventID]);
-        return res.rows ?? [];
+        return res.rows;
     }
 
     async selectUserID(eventID, sekaiID, limit = null) {
-        let internalID = await this._getInternalID(sekaiID, this.client);
+        let internalID = await this._getInternalID(sekaiID);
         if (!internalID) return [];
         
         const queryText = `SELECT * FROM cutoffs WHERE eventid = $1 AND id = $2 ${limit !== null ? 'LIMIT $3' : ''}`;
+
+        console.log('Executing selectUserID:', queryText, 'with params:', limit !== null ? [eventID, internalID, limit] : [eventID, internalID]);
         const params = limit !== null ? [eventID, internalID, limit] : [eventID, internalID];
         const res = await this.client.query(queryText, params);
         return res.rows;
     }
 
     async selectUser(eventID, sekaiID, limit = null) {
-        let internalID = await this._getInternalID(sekaiID, this.client);
+        let internalID = await this._getInternalID(sekaiID);
         if (!internalID) return [];
 
-        const queryText = `SELECT * FROM users WHERE eventid = $1 AND id = $2 ${limit !== null ? 'LIMIT $3' : ''}`;
+        const queryText = `SELECT * FROM user WHERE eventid = $1 AND id = $2 ${limit !== null ? 'LIMIT $3' : ''}`;
+
+        console.log('Executing selectUser:', queryText, 'with params:', limit !== null ? [eventID, internalID, limit] : [eventID, internalID]);
+
+        const params = limit !== null ? [eventID, internalID, limit] : [eventID, internalID];
+        const res = await this.client.query(queryText, params);
+        return res.rows;
+    }
+
+    async selectUserByInternalID(eventID, internalID, limit = null) {
+        const queryText = `SELECT * FROM cutoffs WHERE eventid = $1 AND id = $2 ${limit !== null ? 'LIMIT $3' : ''}`;
+
+        console.log('Executing selectUserByInternalID:', queryText, 'with params:', limit !== null ? [eventID, internalID, limit] : [eventID, internalID]);
+
         const params = limit !== null ? [eventID, internalID, limit] : [eventID, internalID];
         const res = await this.client.query(queryText, params);
         return res.rows;

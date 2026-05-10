@@ -395,11 +395,11 @@ async function noDataErrorMessage(interaction, discordClient) {
 
 async function sendHistoricalTierRequest(eventData, tier, binSize, min, max, hourly, showGames, interaction, discordClient) {
   
-  let response = await discordClient.pgClient.selectTierDESC(tier, eventData.id);
+  let response = await discordClient.pgClient.selectTierDESC(eventData.id, tier);
   if (response.length > 0) {
 
-    let userId = response[0]['ID'];//Get the last ID in the list
-    let data = await discordClient.pgClient.selectUserID(eventData.id, userId);
+    let userId = response[0]['id'];//Get the last ID in the list
+    let data = await discordClient.pgClient.selectUserByInternalID(eventData.id, userId);
     if (data.length > 0) {
       let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
       rankData.unshift({ timestamp: eventData.startAt, score: 0 });
@@ -492,7 +492,7 @@ module.exports = {
 
 
     if (tier) {
-      let data = await discordClient.pgClient.selectTier(tier, eventData.id);
+      let data = await discordClient.pgClient.selectTier(eventData.id, tier);
       if (data.length == 0) {
         noDataErrorMessage(interaction, discordClient);
         return;
