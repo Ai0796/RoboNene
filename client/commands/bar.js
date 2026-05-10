@@ -305,11 +305,11 @@ async function sendHistoricalTierRequest(eventData, tier, interaction, hour, dis
   if (response.length == 0) {
     noDataErrorMessage(interaction, discordClient);
   } else {
-    let userId = response[0]['ID']; //Get the last ID in the list
+    let userId = response[0]['id']; //Get the last ID in the list
 
     let data = await discordClient.pgClient.selectUserID(eventData.id, userId);
     if (data.length > 0) {
-      let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+      let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
       let title = `${eventData.name} T${tier} Heatmap`;
 
       rankData.unshift({ timestamp: eventData.startAt, score: 0 });
@@ -334,7 +334,7 @@ async function sendTierRequest(eventData, tier, interaction, hour, discordClient
     
     let data = await discordClient.pgClient.selectUserID(eventData.id, userId);
     if(data.length > 0) {
-      let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+      let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
       let title = `${eventData.name} T${tier} ${response['rankings'][tier-1]['name']}boo Heatmap`;
 
       rankData.unshift({ timestamp: eventData.startAt, score: 0 });
@@ -410,7 +410,7 @@ module.exports = {
         if (data.length > 0)
         {
           let name = user.displayName;
-          let rankData = data.map(x => ({ timestamp: x.Timestamp, score: x.Score }));
+          let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
           rankData.unshift({ timestamp: eventData.startAt, score: 0 });
           postQuickChart(interaction, `${eventName} ${name} Heatmap`, rankData, eventData, hour, discordClient);
         }
