@@ -63,9 +63,9 @@ class pgClient {
 
         // 2. Not in RAM, hit the DB (Upsert logic)
         const userRes = await dbClient.query(`
-            INSERT INTO id_mapping (discord_id) 
+            INSERT INTO id_mapping (sekai_id) 
             VALUES ($1) 
-            ON CONFLICT (discord_id) DO UPDATE SET discord_id = EXCLUDED.discord_id
+            ON CONFLICT (sekai_id) DO UPDATE SET sekai_id = EXCLUDED.sekai_id
             RETURNING internal_id`, 
             [dID]
         );
