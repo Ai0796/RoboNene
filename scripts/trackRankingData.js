@@ -187,93 +187,92 @@ async function deleteGames() {
  * @param {DiscordClient} discordClient the client we are using 
  */
 const requestRanking = async (event, discordClient) => {
+
+  const insertCutoff = discordClient.cutoffdb.prepare(`
+    INSERT INTO cutoffs (EventID, Tier, Timestamp, Score, ID, GameNum) 
+    VALUES (@eventID, @tier, @timestamp, @score, @id, @gameNum)
+  `);
+
   const retrieveResult = async (response) => {
-    
-    // TODO: Add a check here if response is not available
-    // EX: { httpStatus: 403, errorCode: 'session_error', errorMessage: '' }
+    if (!response || !response.rankings) return;
+
     const rankingData = response.rankings;
     const timestamp = Date.now();
-
     let gameCache = await getGames();
 
-    rankingData.forEach((ranking) => {
-      if (ranking != null && event != -1) {
-        // User is already linked
-        let score = ranking['score'];
-        let rank = ranking['rank'];
-        let id = ranking['userId'];
-        if (id in gameCache) {
-          if (score >= gameCache[id].score + 100) {
-            gameCache[id].games++;
-            gameCache[id].score = score;
+    // 1. Define the transaction (This compiles all the math into one fast block)
+    const updateRankingsTransaction = discordClient.cutoffdb.transaction((data, cache) => {
+
+      // Handle Main Rankings
+      data.forEach((ranking) => {
+        if (ranking != null && event.id != -1) {
+          let score = ranking['score'];
+          let rank = ranking['rank'];
+          let id = ranking['userId'];
+
+          if (id in cache) {
+            if (score >= cache[id].score + 100) {
+              cache[id].games++;
+              cache[id].score = score;
+            }
+          } else {
+            cache[id] = { 'score': score, 'games': 1 };
           }
-        } else {
-          gameCache[id] = {'score': score, 'games': 1};
-        }
 
-        let games = gameCache[id].games;
-
-        discordClient.cutoffdb.prepare('INSERT INTO cutoffs ' +
-          '(EventID, Tier, Timestamp, Score, ID, GameNum) ' +
-          'VALUES(@eventID, @tier, @timestamp, @score, @id, @gameNum)').run({
+          // Use the pre-compiled statement here!
+          insertCutoff.run({
             score: score,
             eventID: event.id,
             tier: rank,
             timestamp: timestamp,
             id: id,
-            gameNum: games
+            gameNum: cache[id].games
           });
-      }
-    });
+        }
+      });
 
-    if (response.userWorldBloomChapterRankings !== undefined) {
-      response.userWorldBloomChapterRankings.forEach((chapter) => {
-        let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
-        chapter.rankings.forEach((ranking) => {
-          let score = ranking['score'];
-          let rank = ranking['rank'];
-          let id = ranking['userId'];
-          let games = 1;
-          if (id in gameCache) {
-            if (score >= gameCache[id].score + 100) {
-              gameCache[id].games++;
-              gameCache[id].score = score;
+      // Handle World Bloom Chapter Rankings
+      if (response.userWorldBloomChapterRankings !== undefined) {
+        response.userWorldBloomChapterRankings.forEach((chapter) => {
+          let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
+          chapter.rankings.forEach((ranking) => {
+            let score = ranking['score'];
+            let rank = ranking['rank'];
+            let id = ranking['userId'];
+
+            if (id in cache) {
+              if (score >= cache[id].score + 100) {
+                cache[id].games++;
+                cache[id].score = score;
+              }
+            } else {
+              cache[id] = { 'score': score, 'games': 1 };
             }
-          } else {
-            gameCache[id] = {'score': score, 'games': 1};
-          }
 
-          games = gameCache[id].games;
-
-          discordClient.cutoffdb.prepare('INSERT INTO cutoffs ' +
-            '(EventID, Tier, Timestamp, Score, ID, GameNum) ' +
-            'VALUES(@eventID, @tier, @timestamp, @score, @id, @gameNum)').run({
+            insertCutoff.run({
               score: score,
               eventID: chapterId,
               tier: rank,
               timestamp: timestamp,
               id: id,
-              gameNum: games
+              gameNum: cache[id].games
             });
+          });
         });
-      });
+      }
+    });
+
+    // 2. Execute the transaction safely
+    try {
+      updateRankingsTransaction(rankingData, gameCache);
+    } catch (dbError) {
+      console.error("Database Transaction Error in requestRanking:", dbError);
     }
 
+    // 3. Continue with your normal flow
     await writeGames(gameCache);
     sendTrackingEmbed(response.rankings, event, timestamp, discordClient);
   };
-
-  for(const idx in RANKING_RANGE) {
-    // Make Priority Requests (We Need These On Time)
-    discordClient.addPrioritySekaiRequest('ranking', {
-      eventId: event.id
-    }, retrieveResult, (err) => {
-      discordClient.logger.log({
-        level: 'error',
-        message: err.toString()
-      });
-    });
-  }
 };
 
 /**
@@ -282,61 +281,62 @@ const requestRanking = async (event, discordClient) => {
  * @param {DiscordClient} discordClient the client we are using 
  */
 const requestBorder = async (event, discordClient) => {
-  const saveBorderData = async (response) => {
+  // 1. Prepare the statement exactly ONCE outside the loop
+  const insertCutoff = discordClient.cutoffdb.prepare(`
+    INSERT INTO cutoffs (EventID, Tier, Timestamp, Score, ID, GameNum) 
+    VALUES (@eventID, @tier, @timestamp, @score, @id, @gameNum)
+  `);
 
-    // TODO: Add a check here if response is not available
-    // EX: { httpStatus: 403, errorCode: 'session_error', errorMessage: '' }
+  const saveBorderData = async (response) => {
+    if (!response || !response.borderRankings) return;
+
     const rankingData = response.borderRankings;
     const timestamp = Date.now();
 
-    rankingData.forEach((ranking) => {
-      if (ranking != null && event != -1) {
-        // User is already linked
-        let score = ranking['score'];
-        let rank = ranking['rank'];
-        let id = ranking['userId'];
+    // 2. Wrap everything in a transaction
+    const updateBordersTransaction = discordClient.cutoffdb.transaction((data) => {
 
-        let games = 1;
-
-        discordClient.cutoffdb.prepare('INSERT INTO cutoffs ' +
-          '(EventID, Tier, Timestamp, Score, ID, GameNum) ' +
-          'VALUES(@eventID, @tier, @timestamp, @score, @id, @gameNum)').run({
-            score: score,
+      // Handle Main Border Rankings
+      data.forEach((ranking) => {
+        if (ranking != null && event.id != -1) {
+          insertCutoff.run({
+            score: ranking['score'],
             eventID: event.id,
-            tier: rank,
+            tier: ranking['rank'],
             timestamp: timestamp,
-            id: id,
-            gameNum: games
+            id: ranking['userId'],
+            gameNum: 1
           });
+        }
+      });
+
+      // Handle World Bloom Border Rankings
+      if (response.userWorldBloomChapterRankingBorders !== undefined) {
+        response.userWorldBloomChapterRankingBorders.forEach((chapter) => {
+          let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
+          chapter.borderRankings.forEach((ranking) => {
+            insertCutoff.run({
+              score: ranking['score'],
+              eventID: chapterId,
+              tier: ranking['rank'],
+              timestamp: timestamp,
+              id: ranking['userId'],
+              gameNum: 1
+            });
+          });
+        });
       }
     });
 
-    if (response.userWorldBloomChapterRankingBorders !== undefined) {
-      response.userWorldBloomChapterRankingBorders.forEach((chapter) => {
-        let chapterId = parseInt(`${event.id}${chapter.gameCharacterId}`);
-        chapter.borderRankings.forEach((ranking) => {
-          let score = ranking['score'];
-          let rank = ranking['rank'];
-          let id = ranking['userId'];
-          let games = 1;
-
-          discordClient.cutoffdb.prepare('INSERT INTO cutoffs ' +
-            '(EventID, Tier, Timestamp, Score, ID, GameNum) ' +
-            'VALUES(@eventID, @tier, @timestamp, @score, @id, @gameNum)').run({
-              score: score,
-              eventID: chapterId,
-              tier: rank,
-              timestamp: timestamp,
-              id: id,
-              gameNum: games
-            });
-        });
-      });
+    // 3. Execute the transaction
+    try {
+      updateBordersTransaction(rankingData);
+    } catch (dbError) {
+      console.error("Database Transaction Error in requestBorder:", dbError);
     }
   };
 
-
-  console.log('Getting Border Data')
+  console.log('Getting Border Data');
   discordClient.addPrioritySekaiRequest('border', {
     eventId: event.id
   }, saveBorderData, (err) => {
