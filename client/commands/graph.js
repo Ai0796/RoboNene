@@ -13,6 +13,7 @@ const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 const getEventData = require('../methods/getEventData');
 const { fuzzy, search } = require('fast-fuzzy');
+const pattern = require('patternomaly');
 
 const colors = [
   '#FF77217F',
@@ -23,6 +24,46 @@ const colors = [
   '#99CDFF7F',
   '#FFA9CC7F',
   '#9AEEDE7F',
+];
+
+const characterColors = {
+  "Ichika Hoshino": "#33AAEE7F",
+  "Saki Tenma": "#FFDD447F",
+  "Honami Mochizuki": "#EE66667F",
+  "Shiho Hinomori": "#BBDD227F",
+  "Minori Hanasato": "#FFCCAA7F",
+  "Haruka Kiritani": "#99CCFF7F",
+  "Airi Momoi": "#FFAACC7F",
+  "Shizuku Hinomori": "#99EEDD7F",
+  "Kohane Azusawa": "#FF66997F",
+  "An Shiraishi": "#00BBDD7F",
+  "Akito Shinonome": "#FF77227F",
+  "Toya Aoyagi": "#0077DD7F",
+  "Tsukasa Tenma": "#FFBB007F",
+  "Emu Otori": "#FF66BB7F",
+  "Nene Kusanagi": "#33DD997F",
+  "Rui Kamishiro": "#BB88EE7F",
+  "Kanade Yoisaki": "#BB66887F",
+  "Mafuyu Asahina": "#8888CC7F",
+  "Ena Shinonome": "#CCAA887F",
+  "Mizuki Akiyama": "#DDAACC7F",
+  "Hatsune Miku": "#33CCBB7F",
+  "Kagamine Rin": "#FFCC117F",
+  "Kagamine Len": "#FFEE117F",
+  "Megurine Luka": "#FFBBCC7F",
+  "MEIKO": "#DD44447F",
+  "KAITO": "#3366CC7F"
+}
+
+// using patternomoly library
+const patterns = [
+  'plus',
+  'dash',
+  'disc',
+  'zigzag',
+  'triangle',
+  'square',
+  'dimanond-box',
 ];
 
 /**
@@ -90,6 +131,7 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
   rankDatas = rankDatas.map((rankData, i) => {
 
     let j = 0;
+    startTime = events[i].startAt ?? Math.min(...rankData.map(p => p.timestamp));
 
     return rankData.map(point => {
       j++;
@@ -99,7 +141,7 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
       }
 
       return {
-        x: point.timestamp - events[i].startAt,
+        x: point.timestamp - startTime,
         y: point.score
       };
     }).filter(point => point !== null);
@@ -117,9 +159,29 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
 
   let colorLen = usableColors.length;
 
+  let usedColors = [];
+  let usedPatterns = [];
+
+  let characters = events.map(event => discordClient.SekaiEventObject.getCharacter(event.chapterId ?? event.id))
+  let characterDict = {};
+
+  characters.forEach(character => {
+    if (characterDict[character]) {
+      characterDict[character]++;
+    } else {
+      characterDict[character] = 0;
+    }
+
+    usedColors.push(characterColors[character] || usableColors[usedColors.length % colorLen]);
+    usedPatterns.push(patterns[characterDict[character] % patterns.length], usedColors[usedColors.length - 1]) // If we have multiple of the same character use patterns to differentiate;
+  });
+
+  console.log(usedColors, usedPatterns);
+
+
   let graphData = rankDatas.map((rankData, i) => {
     return {
-      'type': 'line',
+      'type': 'scatter',
       'borderWidth': 2,
       'label': ensureASCII(`${events[i].id}: ${events[i].name} ${tier}`),
       'fill': true,
@@ -130,8 +192,8 @@ const postQuickChart = async (interaction, tier, rankDatas, events, discordClien
       //   totalEvents
       // ],
       // 'borderDashOffset': i,
-      'borderColor': (i > colorLen - 1) ? usableColors[i % colorLen] : usableColors[i],
-      'backgroundColor': (i > colorLen - 1) ? usableColors[i % colorLen] : usableColors[i],
+      'borderColor': usedColors[i],
+      'backgroundColor': usedColors[i] ?? "",
       'order': totalEvents - i,
       'data': rankData
     };
@@ -314,7 +376,7 @@ module.exports = {
     let tierName = splitTiers.map(x => `T${x}`).join(', ');
 
     events = [];
-    
+
     splitEvents.forEach(event => {
       if (chapter !== null && event.eventType === 'world_bloom') {
         let world_blooms = discordClient.getAllWorldLinkChapters(event.id);
@@ -327,7 +389,8 @@ module.exports = {
           world_link.startAt = world_link.chapterStartAt;
           world_link.aggregateAt = world_link.chapterEndAt;
           world_link.id = parseInt(`${event.id}${world_link.gameCharacterId}`);
-          world_link.name = `${discordClient.getCharacterName(world_link.gameCharacterId)}'s Chapter`;
+          world_link.chapterId = `${event.id}-${chapterId}`;
+          world_link.name = `${discordClient.SekaiEventObject.getEventName(world_link.chapterId)}`;
           for (let i = 0; i < splitTiers.length; i++) {
             events.push(world_link);
           }
@@ -377,7 +440,7 @@ module.exports = {
           noDataErrorMessage(interaction, discordClient);
           return;
         }
-        postQuickChart(interaction, `${tierName} Line Graph`, data, events, discordClient);
+        postQuickChart(interaction, `${tierName}`, data, events, discordClient);
       } else {
         let data = [];
         splitTiers.forEach(tierNum => {
@@ -391,7 +454,7 @@ module.exports = {
           noDataErrorMessage(interaction, discordClient);
           return;
         }
-        postQuickChart(interaction, `${tierName} Player Line Graph`, data, events, discordClient);
+        postQuickChart(interaction, `${tierName} Player`, data, events, discordClient);
       }
     } else if (user) {
       try {
@@ -427,7 +490,7 @@ module.exports = {
     // TODO : Refactor to use getWorldBloomAutocomplete method
     // Graph doesn't override to allow graphing multiple World Blooms
     // So eventID still needs to be added
-    
+
     let world_blooms = discordClient.getAllWorldLinkChapters();
 
     let options = world_blooms.map((chapter, i) => {
