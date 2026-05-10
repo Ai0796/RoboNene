@@ -15,7 +15,7 @@ class pgClient {
             idleTimeoutMillis: 30000,
         });
 
-        this.pool.on('error', (err) => {
+        this.client.on('error', (err) => {
             console.error('Unexpected error on idle PostgreSQL client', err);
         });
     }
