@@ -29,7 +29,7 @@ function getLastHour(sortedList, el) {
 const HOUR = 3600000;
 
 async function getLastHourData(response, rankingData, event, discordClient) {
-  let data = await discordClient.pgClient.selectUserID(event.id, response['rankings'][0]['userId']);
+  let data = await discordClient.pgClient.selectTierDESC(event.id, 1);
 
   let rankData = data.map(x => ({ timestamp: x.timestamp, score: x.score }));
   let timestamps = rankData.map(x => x.timestamp);
@@ -50,7 +50,7 @@ async function getLastHourData(response, rankingData, event, discordClient) {
     tierChange.push(0);
     gamesPlayed.push(-1);
     GPH.push(-1);
-    userIds.push(rankingData[i].userId);
+    userIds.push(String(await discordClient.pgClient.getInternalID(rankingData[i].userId)));
   }
 
   let currentData = await discordClient.pgClient.selectTimestamp(event.id, lastTimestamp);
@@ -60,14 +60,18 @@ async function getLastHourData(response, rankingData, event, discordClient) {
   lastHourData.sort((a, b) => a.tier - b.tier);
   let currentGamesPlayed = {};
   currentData.forEach(x => {
-    currentGamesPlayed[x.id] = { 'id': x.id, 'score': x.score, 'games': x.gamenum || 0, 'tier': x.tier };
+    currentGamesPlayed[x.id] = { 'id': String(x.id), 'score': x.score, 'games': x.gamenum || 0, 'tier': x.tier };
   });
 
   lastHourData.forEach((data) => {
+    data.id = String(data.id);
     let gamesPlayedData = currentGamesPlayed[data.id];
 
     if (gamesPlayedData) {
       let index = userIds.indexOf(data.id);
+      if (index === -1) {
+        return;
+      }
       if (index === -1) return;
       lastHourCutoffs[index] = data.score;
       tierChange[index] = data.tier - gamesPlayedData.tier;
