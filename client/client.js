@@ -296,6 +296,7 @@ class DiscordClient {
     this.stockdb = new AceBase(`${CLIENT_CONSTANTS.STOCK_DB_NAME}`, options);
 
     await this.stockdb.ready();
+    await this.stockdb.indexes.create('waitlists', 'userIds[]');
   }
 
   /**
