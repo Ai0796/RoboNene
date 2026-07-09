@@ -190,6 +190,10 @@ class pgClient {
         const res = await this.client.query(queryText, params);
         return res.rows;
     }
+
+    async getInternalID(sekaiID) {
+        return await this._getInternalID(sekaiID);
+    }
 }
 
 module.exports = {
