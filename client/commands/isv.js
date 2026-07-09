@@ -10,8 +10,12 @@ const generateSlashCommand = require('../methods/generateSlashCommand');
 const generateEmbed = require('../methods/generateEmbed');
 
 function verify(inputStr) {
-    let regex = new RegExp('[0-9]+(/[0-9]+)?$');
+    let regex = new RegExp('^[0-9]+%?(\/[0-9]+)?$');
     return regex.test(inputStr);
+}
+
+function removeNonNumeric(str) {
+    return str.replace(/\D/g, '');
 }
 
 function calculateMultiplier(lead, team) {
@@ -22,7 +26,7 @@ function calculateMultiplier(lead, team) {
         team /= 100;
     }
 
-    return ((lead + (team - lead) / 5)).toFixed(2);
+    return `${Math.round((lead + (team - lead) / 5) * 100)}%`;
 }
 
 module.exports = {
@@ -36,15 +40,15 @@ module.exports = {
 
                 let ISVString = interaction.options.getString('isv');
                 if (!verify(ISVString)) {
-                    await interaction.reply('Invalid ISV format use the format {lead}/{team} Ex: 150/700', { ephemeral: true });
+                    await interaction.reply('Invalid ISV format use the format {lead}[/{team}] Ex: 150/700 or 200', { ephemeral: true });
                     return;
                 }
 
                 let splitStr = ISVString.split('/');
-                let lead = parseInt(splitStr[0]);
+                let lead = parseInt(removeNonNumeric(splitStr[0]));
                 var team;
                 if (splitStr.length >= 2) {
-                    team = parseInt(splitStr[1]);
+                    team = parseInt(removeNonNumeric(splitStr[1]));
                 } else {
                     team = lead;
                 }
