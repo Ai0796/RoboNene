@@ -24,26 +24,28 @@ loadGameData(50, async () => {
   client.loadCommands();
   client.loadEvents();
   client.loadDb();
-  client.loadCutoffDb();
   client.loadLogger();
   // client.loadMessageHandler();
   client.loadServerHandler();
   client.loadEventData();
 
+  await client.loadCutoffDb();
   client.loadPrayerDb();
-  client.loadStockDb();
+  await client.loadStockDb();
 
+
+  console.log('Logging in to Discord...');
   await client.login();
   await client.loadSekaiClient();
   await client.runSekaiRequests();
 
   // Begin the scripts
-  trackGameData(client);
-  trackRankingData(client);
-  // trackCutoffData(client);
-  // trackUserCutoffs(client);
-  trackTierData(client);
-  // trackTwitterData(client);
+  await trackGameData(client);
+  await trackRankingData(client);
+  // await trackCutoffData(client);
+  // await trackUserCutoffs(client);
+  await trackTierData(client);
+  // await trackTwitterData(client);
 
   // Lower Priority Tasks
   // updateActivity(client);
