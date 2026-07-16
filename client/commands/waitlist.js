@@ -199,7 +199,7 @@ async function onInteract(interaction, discordClient, channel_id) {
                 await interaction.update(await waitlistEmbed(channel_id, discordClient));
                 await interaction.followUp({ content: `<@${user}> has joined the the waitlist`, allowedMentions: { parse: [] } });
             } else {
-                interaction.reply({ content: 'You are already in the waitlist', ephemeral: true });
+                await interaction.reply({ content: 'You are already in the waitlist', ephemeral: true });
             }
         } else if (customId === 'leave') {
             await removeUserIndividual(channel_id, user, discordClient);
@@ -240,9 +240,14 @@ async function confirmJoin(interaction, nextUser, discordClient) {
     let message_id = sent.id;
     let checkedIn = false;
 
+    let filter = (i) => {
+        return i.message.id == (message_id) && i.customId === 'confirmJoin' && i.user.id === nextUser;
+    }
+
     let collector = interaction.channel.createMessageComponentCollector({
         componentType: ComponentType.Button,
-        time: 60000
+        time: 60000,
+        filter: filter
     });
 
     collector.on('collect', async (i) => {
@@ -399,8 +404,10 @@ async function createWaitlist(interaction, discordClient) {
 
     await discordClient.stockdb.ref(`waitlists/${channel_id}/message_id`).set(message.id);
 
+    let messageId = message.id;
+
     let filter = (i) => {
-        return i.message.id == (message.id) && ['join', 'leave', 'ping'].includes(i.customId);
+        return i.message.id == (messageId) && ['join', 'leave', 'ping'].includes(i.customId);
     };
 
     const collector = interaction.channel.createMessageComponentCollector({
@@ -446,9 +453,10 @@ async function waitlistClear(discordClient, interaction, channel_id) {
             const message = await interaction.editReply({ embeds: [embed], components: [actionRow], ephemeral: true });
 
             let cleared = true;
+            let messageId = message.id;
 
             const filter = (i) => {
-                return i.message.id === message.id && i.customId === 'cancelClear';
+                return i.message.id === messageId && i.customId === 'cancelClear';
             };
 
             const collector = interaction.channel.createMessageComponentCollector({
